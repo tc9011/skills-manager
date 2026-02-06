@@ -1,27 +1,30 @@
 import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { SkillsList } from "@/components/skills/SkillsList";
-import { AddSkillDialog } from "@/components/skills/AddSkillDialog";
+import { ImportSkillDialog } from "@/components/skills/ImportSkillDialog";
+import { CreateSkillDialog } from "@/components/skills/CreateSkillDialog";
 import { SkillDetailDialog } from "@/components/skills/SkillDetailDialog";
 import { SyncPanel } from "@/components/sync/SyncPanel";
-import { SettingsDialog } from "@/components/settings/SettingsDialog";
+import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { ProjectPanel } from "@/components/project/ProjectPanel";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { useSkills } from "@/hooks/useSkills";
 import type { Skill } from "@/types/skill";
-import {
-  Package,
-  FolderOpen,
-  RefreshCw,
-  Plus,
-  Settings,
-} from "lucide-react";
+import { Plus, Download } from "lucide-react";
+
+interface AgentConfig {
+  id: string;
+  name: string;
+  enabled: boolean;
+  path: string;
+  project_path: string;
+}
 
 interface AppSettings {
   global_skills_path: string;
-  agents: unknown[];
+  agents: AgentConfig[];
   github_token?: string;
   recent_projects: string[];
   active_projects: string[];
@@ -29,14 +32,18 @@ interface AppSettings {
 
 function App() {
   const { skills, loading, error, refetch } = useSkills();
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [activeProjects, setActiveProjects] = useState<string[]>([]);
+  const [agents, setAgents] = useState<AgentConfig[]>([]);
+  const [installedAgentIds, setInstalledAgentIds] = useState<string[]>([]);
+  const [activeSection, setActiveSection] = useState("all-skills");
 
   useEffect(() => {
     loadActiveProjects();
+    loadAgents();
   }, []);
 
   const loadActiveProjects = async () => {
@@ -45,6 +52,25 @@ function App() {
       setActiveProjects(settings.active_projects || []);
     } catch {
       setActiveProjects([]);
+    }
+  };
+
+  const loadAgents = async () => {
+    try {
+      const settings = await invoke<AppSettings>("get_app_settings");
+      if (settings.agents) {
+        setAgents(settings.agents);
+        const agentPaths: [string, string][] = settings.agents.map((a) => [
+          a.id,
+          a.path,
+        ]);
+        const installed = await invoke<string[]>("detect_installed_agents", {
+          agents: agentPaths,
+        });
+        setInstalledAgentIds(installed);
+      }
+    } catch {
+      setAgents([]);
     }
   };
 
@@ -83,75 +109,133 @@ function App() {
     refetch();
   }, [refetch]);
 
+  const handleAddProject = useCallback(async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: "Select Project Folder",
+      });
+      if (selected && typeof selected === "string") {
+        if (!activeProjects.includes(selected)) {
+          const newProjects = [...activeProjects, selected];
+          handleProjectsChange(newProjects);
+          setActiveSection(`project-${selected}`);
+        } else {
+          setActiveSection(`project-${selected}`);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to open folder dialog:", err);
+    }
+  }, [activeProjects, handleProjectsChange]);
+
+  const handleRemoveProject = useCallback((path: string) => {
+    const newProjects = activeProjects.filter(p => p !== path);
+    handleProjectsChange(newProjects);
+    if (activeSection === `project-${path}`) {
+      setActiveSection("all-skills");
+    }
+  }, [activeProjects, activeSection, handleProjectsChange]);
+
+  const filteredSkills = activeSection.startsWith("agent-")
+    ? skills.filter((s) =>
+        s.installed_in.includes(activeSection.replace("agent-", ""))
+      )
+    : skills;
+
+  const getSkillsListTitle = () => {
+    if (activeSection === "all-skills") {
+      return "Central Skills";
+    }
+    if (activeSection.startsWith("agent-")) {
+      const agentId = activeSection.replace("agent-", "");
+      const agent = agents.find((a) => a.id === agentId);
+      return agent ? `${agent.name} Skills` : "Agent Skills";
+    }
+    return "Skills";
+  };
+
+  const renderMainContent = () => {
+    if (activeSection === "settings") {
+      return <SettingsPanel />;
+    }
+    if (activeSection.startsWith("project-")) {
+      const projectPath = activeSection.replace("project-", "");
+      return (
+        <ProjectPanel
+          projectPath={projectPath}
+        />
+      );
+    }
+    if (activeSection === "sync") {
+      return <SyncPanel />;
+    }
+    return (
+      <SkillsList
+        skills={filteredSkills}
+        loading={loading}
+        error={error}
+        onRetry={refetch}
+        onSkillClick={handleSkillClick}
+        title={getSkillsListTitle()}
+      />
+    );
+  };
+
   return (
-    <div className="dark h-screen flex flex-col bg-background text-foreground">
-      <header className="border-b border-border px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Package className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">Skills Manager</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAddDialogOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Skill
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setSettingsDialogOpen(true)}>
-            <Settings className="h-4 w-4" />
-          </Button>
-        </div>
-      </header>
+    <div className="h-screen flex bg-[hsl(30_20%_98%)] text-[hsl(20_10%_20%)]">
+      {/* Sidebar */}
+      <Sidebar
+        agents={agents.filter((a) => installedAgentIds.includes(a.id))}
+        projects={activeProjects}
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        onAddProject={handleAddProject}
+        onRemoveProject={handleRemoveProject}
+      />
 
-      <main className="flex-1 overflow-hidden">
-        <Tabs defaultValue="global" className="h-full flex flex-col">
-           <div className="border-b border-border px-4">
-             <TabsList className="h-10 bg-transparent">
-               <TabsTrigger value="global" className="gap-2">
-                 <Package className="h-4 w-4" />
-                 Global
-               </TabsTrigger>
-               <TabsTrigger value="project" className="gap-2">
-                 <FolderOpen className="h-4 w-4" />
-                 Project
-               </TabsTrigger>
-               <TabsTrigger value="sync" className="gap-2">
-                 <RefreshCw className="h-4 w-4" />
-                 Sync
-               </TabsTrigger>
-             </TabsList>
-           </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="border-b border-[hsl(30_10%_90%)] px-6 py-4 flex items-center justify-between bg-white">
+          <h1 className="text-xl font-semibold">Skills Manager</h1>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCreateDialogOpen(true)}
+              className="border-[hsl(30_10%_85%)]"
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Create Skill
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setImportDialogOpen(true)}
+              className="bg-[hsl(18_65%_52%)] hover:bg-[hsl(18_65%_47%)] text-white"
+            >
+              <Download className="h-4 w-4 mr-1.5" />
+              Import Skill
+            </Button>
+          </div>
+        </header>
 
-           <ScrollArea className="flex-1">
-             <TabsContent value="global" className="p-4 m-0">
-               <SkillsList
-                 skills={skills}
-                 loading={loading}
-                 error={error}
-                 onRetry={refetch}
-                 onSkillClick={handleSkillClick}
-               />
-             </TabsContent>
+        {/* Content Area */}
+        <main className="flex-1 overflow-auto p-6">
+          {renderMainContent()}
+        </main>
+      </div>
 
-             <TabsContent value="project" className="p-4 m-0">
-               <ProjectPanel
-                 projects={activeProjects}
-                 onProjectsChange={handleProjectsChange}
-               />
-             </TabsContent>
+      <ImportSkillDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onSuccess={handleAddSuccess}
+      />
 
-             <TabsContent value="sync" className="p-4 m-0">
-               <SyncPanel />
-             </TabsContent>
-           </ScrollArea>
-        </Tabs>
-      </main>
-
-      <AddSkillDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
+      <CreateSkillDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
         onSuccess={handleAddSuccess}
       />
 
@@ -160,11 +244,6 @@ function App() {
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
         onDeleted={handleSkillDeleted}
-      />
-
-      <SettingsDialog
-        open={settingsDialogOpen}
-        onOpenChange={setSettingsDialogOpen}
       />
     </div>
   );

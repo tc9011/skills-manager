@@ -141,13 +141,17 @@ Detailed instructions and content...
 interface AppSettings {
   global_skills_path: string;  // Default: ~/.agents/skills
   agents: AgentConfig[];
+  github_token: string | null; // GitHub PAT for passwordless auth
+  recent_projects: string[];   // Recently opened project paths
+  active_projects: string[];   // Currently open project tabs
 }
 
 interface AgentConfig {
   name: string;     // Display name
   id: string;       // Identifier
   enabled: boolean; // Whether to manage this agent
-  path: string;     // Skills directory path
+  path: string;     // Global skills directory path
+  project_path: string; // Project-relative skills path
 }
 ```
 
@@ -225,8 +229,40 @@ interface SyncConfig {
 - Agent configurations:
   - Enable/disable each agent
   - Custom paths for each agent
+- GitHub token for passwordless auth
 
 **Persistence**: `~/.config/skills-manager/settings.json`
+
+### 6. Multi-Project Tabs
+
+**Purpose**: Work with multiple projects simultaneously.
+
+**Behavior**:
+1. Open multiple projects as horizontal tabs
+2. Tabs persist across app restarts
+3. Recent projects dropdown for quick access
+4. Close button on each tab
+
+**Persistence**: `active_projects` saved to settings
+
+### 7. GitHub Token Authentication
+
+**Purpose**: Enable passwordless Git operations.
+
+**Behavior**:
+1. Token input in Sync tab with show/hide toggle
+2. Token saved to app settings
+3. Token injected into Git URLs: `https://<token>@github.com/...`
+4. Works with clone, pull, and push operations
+
+### 8. Copy/Symlink Skills
+
+**Purpose**: Transfer skills between global and project directories.
+
+**Actions**:
+- Global → Project: "Copy to Project" button with folder picker
+- Project → Global: Copy or symlink buttons on skill cards
+- Cross-platform symlink support (Unix symlinks, Windows junctions)
 
 ---
 
@@ -314,6 +350,10 @@ All file system and shell access is explicitly declared in `src-tauri/capabiliti
 - [x] Project skills scanning
 - [x] GitHub sync (clone, pull, push)
 - [x] Settings configuration
+- [x] 40+ agent support
+- [x] GitHub token authentication
+- [x] Multi-project tabs with persistence
+- [x] Copy/symlink skills
 
 ### Phase 2
 - [ ] Online skill registry API

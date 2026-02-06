@@ -1,26 +1,40 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: hsl(222.2 84% 4.9%);
-  --color-foreground: hsl(210 40% 98%);
-  --color-card: hsl(222.2 84% 4.9%);
-  --color-card-foreground: hsl(210 40% 98%);
-  --color-popover: hsl(222.2 84% 4.9%);
-  --color-popover-foreground: hsl(210 40% 98%);
-  --color-primary: hsl(210 40% 98%);
-  --color-primary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-secondary: hsl(217.2 32.6% 17.5%);
-  --color-secondary-foreground: hsl(210 40% 98%);
-  --color-muted: hsl(217.2 32.6% 17.5%);
-  --color-muted-foreground: hsl(215 20.2% 65.1%);
-  --color-accent: hsl(217.2 32.6% 17.5%);
-  --color-accent-foreground: hsl(210 40% 98%);
-  --color-destructive: hsl(0 62.8% 30.6%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(217.2 32.6% 17.5%);
-  --color-input: hsl(217.2 32.6% 17.5%);
-  --color-ring: hsl(212.7 26.8% 83.9%);
-  --radius: 0.5rem;
+  /* Light theme - warm, clean aesthetic */
+  --color-background: hsl(30 20% 98%);
+  --color-foreground: hsl(20 10% 20%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(20 10% 20%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(20 10% 20%);
+  --color-primary: hsl(18 70% 50%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(30 15% 95%);
+  --color-secondary-foreground: hsl(20 10% 30%);
+  --color-muted: hsl(30 10% 94%);
+  --color-muted-foreground: hsl(20 5% 50%);
+  --color-accent: hsl(18 60% 95%);
+  --color-accent-foreground: hsl(18 70% 40%);
+  --color-destructive: hsl(0 65% 50%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(30 10% 90%);
+  --color-input: hsl(30 10% 90%);
+  --color-ring: hsl(18 70% 50%);
+  --radius: 0.75rem;
+
+  /* Custom colors for the design */
+  --color-sidebar: hsl(30 15% 97%);
+  --color-sidebar-foreground: hsl(20 10% 30%);
+  --color-sidebar-muted: hsl(20 5% 55%);
+  --color-sidebar-active: hsl(30 20% 94%);
+  --color-terracotta: hsl(18 65% 52%);
+  --color-terracotta-light: hsl(18 60% 96%);
+  
+  /* Terminal dots */
+  --color-dot-red: #EF6B5E;
+  --color-dot-yellow: #F5BD4F;
+  --color-dot-green: #61C454;
 }
 
 @layer base {
@@ -30,5 +44,6 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 }

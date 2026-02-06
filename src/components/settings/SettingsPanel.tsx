@@ -1,20 +1,11 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  FolderOpen,
   Check,
   Loader2,
   Search,
@@ -26,11 +17,6 @@ interface AgentConfig {
   enabled: boolean;
   path: string;
   project_path: string;
-}
-
-interface SettingsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
 }
 
 const DEFAULT_AGENTS: AgentConfig[] = [
@@ -75,8 +61,9 @@ const DEFAULT_AGENTS: AgentConfig[] = [
   { name: "Zencoder", id: "zencoder", enabled: false, path: "~/.zencoder/skills/", project_path: ".zencoder/skills/" },
 ];
 
-export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+export function SettingsPanel() {
   const [agents, setAgents] = useState<AgentConfig[]>(DEFAULT_AGENTS);
+  const [installedAgentIds, setInstalledAgentIds] = useState<string[]>([]);
   const [globalSkillsPath, setGlobalSkillsPath] = useState("~/.agents/skills");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -86,11 +73,18 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     agent.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  useEffect(() => {
-    if (open) {
-      loadSettings();
+  const sortedAgents = [...filteredAgents].sort((a, b) => {
+    const aInstalled = installedAgentIds.includes(a.id);
+    const bInstalled = installedAgentIds.includes(b.id);
+    if (aInstalled !== bInstalled) {
+      return bInstalled ? 1 : -1;
     }
-  }, [open]);
+    return a.name.localeCompare(b.name);
+  });
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   const loadSettings = async () => {
     try {
@@ -105,6 +99,14 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         }
         if (config.agents) {
           setAgents(config.agents);
+          const agentPaths: [string, string][] = config.agents.map((a) => [
+            a.id,
+            a.path,
+          ]);
+          const installed = await invoke<string[]>("detect_installed_agents", {
+            agents: agentPaths,
+          });
+          setInstalledAgentIds(installed);
         }
       }
     } catch (err) {
@@ -132,166 +134,112 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     }
   };
 
-  const toggleAgent = (id: string) => {
-    setAgents((prev) =>
-      prev.map((agent) =>
-        agent.id === id ? { ...agent, enabled: !agent.enabled } : agent
-      )
-    );
-  };
-
-  const updateAgentPath = (id: string, path: string) => {
-    setAgents((prev) =>
-      prev.map((agent) =>
-        agent.id === id ? { ...agent, path } : agent
-      )
-    );
-  };
-
-  const updateAgentProjectPath = (id: string, project_path: string) => {
-    setAgents((prev) =>
-      prev.map((agent) =>
-        agent.id === id ? { ...agent, project_path } : agent
-      )
-    );
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>
-            Configure Skills Manager preferences
-          </DialogDescription>
-        </DialogHeader>
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h2 className="text-lg font-semibold">Settings</h2>
+        <p className="text-sm text-muted-foreground">
+          Configure Skills Manager preferences
+        </p>
+      </div>
 
-        <div className="space-y-6 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="global-path">Global Skills Directory</Label>
-            <div className="flex gap-2">
-              <Input
-                id="global-path"
-                value={globalSkillsPath}
-                onChange={(e) => setGlobalSkillsPath(e.target.value)}
-                placeholder="~/.agents/skills"
-                className="flex-1"
-              />
-              <Button variant="outline" size="icon" disabled>
-                <FolderOpen className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Where your global skills are stored
-            </p>
-          </div>
+      <div className="space-y-2">
+        <Label>Global Skills Directory</Label>
+        <div className="flex gap-2 items-center">
+          <span className="text-sm text-muted-foreground flex-1">
+            {globalSkillsPath}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Where your global skills are stored
+        </p>
+      </div>
 
+      <div className="space-y-3">
+        <Label>Agent Directories</Label>
+        <p className="text-xs text-muted-foreground mb-2">
+          Skills are symlinked to these directories for each agent
+        </p>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search agents..."
+            className="pl-9"
+          />
+        </div>
+
+        <ScrollArea className="h-[500px] pr-4">
           <div className="space-y-3">
-            <Label>Agent Directories</Label>
-            <p className="text-xs text-muted-foreground mb-2">
-              Skills are symlinked to these directories for each agent
-            </p>
-
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search agents..."
-                className="pl-9"
-              />
-            </div>
-
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-3">
-                {filteredAgents.map((agent) => (
-                  <div
-                    key={agent.id}
-                    className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card"
-                  >
-                    <Checkbox
-                      id={`agent-${agent.id}`}
-                      checked={agent.enabled}
-                      onCheckedChange={() => toggleAgent(agent.id)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Label
-                          htmlFor={`agent-${agent.id}`}
-                          className="font-medium cursor-pointer"
+            {sortedAgents.map((agent) => {
+              const isInstalled = installedAgentIds.includes(agent.id);
+              return (
+                <div
+                  key={agent.id}
+                  className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card"
+                >
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="font-medium">
+                        {agent.name}
+                      </Label>
+                      {isInstalled ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-xs"
                         >
-                          {agent.name}
-                        </Label>
-                        {agent.enabled ? (
-                          <Badge
-                            variant="outline"
-                            className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-xs"
-                          >
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">
-                            Disabled
-                          </Badge>
-                        )}
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          Not Installed
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-14">Global:</span>
+                        <span className="text-sm text-muted-foreground flex-1 truncate">
+                          {agent.path}
+                        </span>
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground w-14">Global:</span>
-                          <Input
-                            value={agent.path}
-                            onChange={(e) => updateAgentPath(agent.id, e.target.value)}
-                            disabled={!agent.enabled}
-                            placeholder={`~/.${agent.id}/skills`}
-                            className="text-sm h-7 flex-1"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground w-14">Project:</span>
-                          <Input
-                            value={agent.project_path}
-                            onChange={(e) => updateAgentProjectPath(agent.id, e.target.value)}
-                            disabled={!agent.enabled}
-                            placeholder={`.${agent.id}/skills`}
-                            className="text-sm h-7 flex-1"
-                          />
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-14">Project:</span>
+                        <span className="text-sm text-muted-foreground flex-1 truncate">
+                          {agent.project_path}
+                        </span>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
+                </div>
+              );
+            })}
           </div>
+        </ScrollArea>
+      </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            <div className="text-sm text-muted-foreground">
-              {saved && (
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <Check className="h-4 w-4" />
-                  Settings saved
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Settings"
-                )}
-              </Button>
-            </div>
-          </div>
+      <div className="flex items-center justify-between pt-4 border-t border-border">
+        <div className="text-sm text-muted-foreground">
+          {saved && (
+            <span className="flex items-center gap-1 text-emerald-400">
+              <Check className="h-4 w-4" />
+              Settings saved
+            </span>
+          )}
         </div>
-      </DialogContent>
-    </Dialog>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save Settings"
+          )}
+        </Button>
+      </div>
+    </div>
   );
 }

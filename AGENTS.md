@@ -81,6 +81,22 @@ pub fn scan_global_skills() -> Result<Vec<Skill>, String> { ... }
 const skills = await invoke<Skill[]>("scan_global_skills");
 ```
 
+### Available Tauri Commands
+
+| Command | Module | Description |
+|---------|--------|-------------|
+| `scan_global_skills` | skills | Scan ~/.agents/skills/ for skills |
+| `scan_project_skills` | skills | Scan project directory for skills |
+| `copy_skill` | skills | Copy skill directory to destination |
+| `symlink_skill` | skills | Create symlink to skill directory |
+| `get_app_settings` | settings | Load app settings |
+| `save_app_settings` | settings | Save app settings |
+| `get_github_token` | settings | Get GitHub PAT for auth |
+| `save_github_token` | settings | Save GitHub PAT |
+| `git_clone_repo` | sync | Clone repository with token auth |
+| `git_pull` | sync | Pull with token auth |
+| `git_push` | sync | Push with token auth |
+
 ### Skill Structure
 Each skill is a directory with a `SKILL.md` file:
 ```yaml

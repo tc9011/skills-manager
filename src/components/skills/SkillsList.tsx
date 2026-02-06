@@ -1,6 +1,6 @@
 import { SkillCard } from "./SkillCard";
 import type { Skill } from "@/types/skill";
-import { Package, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Package, Loader2, AlertCircle, RefreshCw, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SkillsListProps {
@@ -9,6 +9,7 @@ interface SkillsListProps {
   error: string | null;
   onRetry: () => void;
   onSkillClick?: (skill: Skill) => void;
+  title?: string;
 }
 
 export function SkillsList({
@@ -17,6 +18,7 @@ export function SkillsList({
   error,
   onRetry,
   onSkillClick,
+  title = "Skills",
 }: SkillsListProps) {
   if (loading) {
     return (
@@ -43,25 +45,43 @@ export function SkillsList({
 
   if (skills.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-        <Package className="h-12 w-12 mb-4 opacity-50" />
-        <p className="text-lg font-medium">No global skills installed</p>
-        <p className="text-sm mt-1">
-          Click "Add Skill" to install your first skill
-        </p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Layers className="h-5 w-5 text-[hsl(18_65%_52%)]" />
+            <h2 className="text-lg font-medium">{title}</h2>
+          </div>
+          <span className="text-sm text-[hsl(20_5%_55%)]">0 skills</span>
+        </div>
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <Package className="h-12 w-12 mb-4 opacity-50" />
+          <p className="text-lg font-medium">No skills found</p>
+          <p className="text-sm mt-1">
+            Click "Import Skill" to add your first skill
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {skills.map((skill) => (
-        <SkillCard
-          key={skill.path}
-          skill={skill}
-          onClick={() => onSkillClick?.(skill)}
-        />
-      ))}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Layers className="h-5 w-5 text-[hsl(18_65%_52%)]" />
+          <h2 className="text-lg font-medium">{title}</h2>
+        </div>
+        <span className="text-sm text-[hsl(20_5%_55%)]">{skills.length} skills</span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {skills.map((skill) => (
+          <SkillCard
+            key={skill.path}
+            skill={skill}
+            onClick={() => onSkillClick?.(skill)}
+          />
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,61 +1,83 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { Skill } from "@/types/skill";
-import { FolderSymlink, HardDrive, Cloud } from "lucide-react";
+import { GitBranch, Trash2 } from "lucide-react";
 
 interface SkillCardProps {
   skill: Skill;
   onClick?: () => void;
+  onSync?: () => void;
+  onDelete?: () => void;
 }
 
-const sourceIcons = {
-  local: HardDrive,
-  remote: Cloud,
-  symlink: FolderSymlink,
-};
-
-const agentColors: Record<string, string> = {
-  opencode: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  claude: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  cursor: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-};
-
-export function SkillCard({ skill, onClick }: SkillCardProps) {
-  const SourceIcon = sourceIcons[skill.source];
-
+export function SkillCard({ skill, onClick, onSync, onDelete }: SkillCardProps) {
   return (
-    <Card
-      className="cursor-pointer transition-colors hover:bg-accent/50"
+    <div 
+      className="bg-white rounded-xl shadow-sm border border-[hsl(30_10%_90%)] overflow-hidden hover:shadow-md transition-shadow"
       onClick={onClick}
     >
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-base font-medium">{skill.name}</CardTitle>
-          <SourceIcon className="h-4 w-4 text-muted-foreground" />
-        </div>
-        <CardDescription className="line-clamp-2 text-sm">
-          {skill.description || "No description available"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="flex flex-wrap gap-1">
+      {/* Content */}
+      <div className="p-4">
+        {/* Title */}
+        <h3 className="text-lg font-semibold text-[hsl(18_65%_52%)] mb-2">
+          {skill.name}
+        </h3>
+
+        {/* Badges */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          <Badge className="bg-[hsl(18_65%_52%)] text-white hover:bg-[hsl(18_65%_47%)]">
+            Hub
+          </Badge>
           {skill.installed_in.length > 0 ? (
             skill.installed_in.map((agent) => (
               <Badge
                 key={agent}
                 variant="outline"
-                className={agentColors[agent] || ""}
+                className="border-[hsl(30_10%_85%)] text-[hsl(20_10%_40%)]"
               >
                 {agent}
               </Badge>
             ))
           ) : (
-            <Badge variant="outline" className="text-muted-foreground">
-              Not installed in any agent
+            <Badge variant="outline" className="border-[hsl(30_10%_85%)] text-[hsl(20_5%_55%)]">
+              Not installed
             </Badge>
           )}
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Description */}
+        <p className="text-sm text-[hsl(20_10%_40%)] leading-relaxed mb-4">
+          <span className="text-[hsl(18_65%_52%)]">// </span>
+          {skill.description || "No description available"}
+        </p>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 pt-3 border-t border-[hsl(30_10%_90%)]">
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="flex-1 bg-[hsl(20_10%_20%)] hover:bg-[hsl(20_10%_15%)] text-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSync?.();
+            }}
+          >
+            <GitBranch className="h-3.5 w-3.5 mr-1.5" />
+            Sync
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="text-[hsl(0_65%_50%)] hover:text-[hsl(0_65%_45%)] hover:bg-[hsl(0_65%_50%)]/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.();
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

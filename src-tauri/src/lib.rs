@@ -4,8 +4,9 @@ use commands::settings::{
     get_app_settings, get_github_token, save_app_settings, save_github_token,
 };
 use commands::skills::{
-    copy_skill, delete_skill_directory, get_skill_content, run_skills_add, run_skills_remove,
-    scan_global_skills, scan_project_skills, symlink_skill,
+    copy_skill, create_skill_file, delete_skill_directory, detect_installed_agents,
+    get_skill_content, run_skills_add, run_skills_remove, scan_global_skills, scan_project_skills,
+    symlink_skill,
 };
 use commands::sync::{
     check_skills_folder_exists, get_git_remote, get_sync_config, git_add_commit_push,
@@ -42,7 +43,9 @@ pub fn run() {
             get_github_token,
             save_github_token,
             copy_skill,
-            symlink_skill
+            symlink_skill,
+            create_skill_file,
+            detect_installed_agents
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

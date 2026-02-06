@@ -19,17 +19,17 @@ interface CommandResult {
   stderr: string;
 }
 
-interface AddSkillDialogProps {
+interface ImportSkillDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }
 
-export function AddSkillDialog({
+export function ImportSkillDialog({
   open,
   onOpenChange,
   onSuccess,
-}: AddSkillDialogProps) {
+}: ImportSkillDialogProps) {
   const [skillName, setSkillName] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CommandResult | null>(null);
@@ -72,9 +72,9 @@ export function AddSkillDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Skill</DialogTitle>
+          <DialogTitle>Import Skill</DialogTitle>
           <DialogDescription>
-            Install a skill using npx skills add. Enter the skill name or GitHub
+            Import a skill from a repository. Enter the skill name or GitHub
             URL.
           </DialogDescription>
         </DialogHeader>

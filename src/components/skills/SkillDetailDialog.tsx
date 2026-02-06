@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import {
   CheckCircle2,
   Trash2,
   FolderOpen,
+  Copy,
 } from "lucide-react";
 import type { Skill } from "@/types/skill";
 
@@ -45,6 +47,8 @@ export function SkillDetailDialog({
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [copySuccess, setCopySuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && skill) {
@@ -53,6 +57,7 @@ export function SkillDetailDialog({
       setContent(null);
       setDeleteConfirm(false);
       setDeleteSuccess(false);
+      setCopySuccess(null);
       setError(null);
     }
   }, [open, skill]);
@@ -89,6 +94,35 @@ export function SkillDetailDialog({
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleCopyToProject = async () => {
+    if (!skill) return;
+
+    try {
+      const selected = await openDialog({
+        directory: true,
+        multiple: false,
+        title: "Select destination folder for skill",
+      });
+
+      if (selected && typeof selected === "string") {
+        setCopying(true);
+        setError(null);
+        setCopySuccess(null);
+
+        const result = await invoke<string>("copy_skill", {
+          sourcePath: skill.path,
+          destDir: selected,
+        });
+        setCopySuccess(result);
+        setTimeout(() => setCopySuccess(null), 3000);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCopying(false);
     }
   };
 
@@ -151,6 +185,13 @@ export function SkillDetailDialog({
           </div>
         )}
 
+        {copySuccess && (
+          <div className="flex items-center gap-2 p-3 rounded-md bg-emerald-500/10 text-emerald-400">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>{copySuccess}</span>
+          </div>
+        )}
+
         {error && !loading && (
           <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive">
             <AlertCircle className="h-4 w-4" />
@@ -169,6 +210,19 @@ export function SkillDetailDialog({
             >
               <FolderOpen className="h-4 w-4 mr-1" />
               Open Folder
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyToProject}
+              disabled={copying}
+            >
+              {copying ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Copy className="h-4 w-4 mr-1" />
+              )}
+              Copy to Project
             </Button>
           </div>
 

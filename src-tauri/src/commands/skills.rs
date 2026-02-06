@@ -4,6 +4,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
+use super::settings::get_app_settings;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Skill {
     pub name: String,
@@ -88,16 +90,17 @@ pub fn scan_global_skills() -> Result<Vec<Skill>, String> {
     let agents_skills = home.join(".agents").join("skills");
     let canonical_skills = scan_skills_in_directory(&agents_skills);
 
-    let agent_dirs = vec![
-        (".config/opencode/skills", "opencode"),
-        (".claude/skills", "claude"),
-        (".cursor/skills", "cursor"),
-    ];
+    let settings = get_app_settings().unwrap_or_default();
 
     let mut agent_skill_presence: HashMap<String, Vec<String>> = HashMap::new();
 
-    for (rel_path, agent_name) in &agent_dirs {
-        let agent_skill_dir = home.join(rel_path);
+    for agent in &settings.agents {
+        let agent_skill_dir = if agent.path.starts_with("~/") {
+            home.join(&agent.path[2..])
+        } else {
+            PathBuf::from(&agent.path)
+        };
+
         if agent_skill_dir.exists() {
             if let Ok(entries) = fs::read_dir(&agent_skill_dir) {
                 for entry in entries.flatten() {
@@ -111,7 +114,7 @@ pub fn scan_global_skills() -> Result<Vec<Skill>, String> {
                         agent_skill_presence
                             .entry(name)
                             .or_default()
-                            .push(agent_name.to_string());
+                            .push(agent.id.clone());
                     }
                 }
             }
@@ -337,6 +340,56 @@ pub fn copy_skill(source_path: String, dest_dir: String) -> Result<String, Strin
     copy_dir_recursively(&src, &dst)?;
 
     Ok(dst.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn create_skill_file(
+    skill_name: String,
+    description: String,
+    content: String,
+) -> Result<String, String> {
+    let home = get_home_dir().ok_or("Could not find home directory")?;
+    let skill_dir = home.join(".agents").join("skills").join(&skill_name);
+
+    if skill_dir.exists() {
+        return Err(format!("Skill '{}' already exists", skill_name));
+    }
+
+    fs::create_dir_all(&skill_dir)
+        .map_err(|e| format!("Failed to create skill directory: {}", e))?;
+
+    let skill_md_path = skill_dir.join("SKILL.md");
+
+    let file_content = format!(
+        "---\nname: {}\ndescription: \"{}\"\n---\n\n{}",
+        skill_name, description, content
+    );
+
+    fs::write(&skill_md_path, file_content)
+        .map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
+
+    Ok(skill_dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn detect_installed_agents(agents: Vec<(String, String)>) -> Result<Vec<String>, String> {
+    let home = get_home_dir().ok_or("Could not find home directory")?;
+    let mut installed = Vec::new();
+
+    for (agent_id, path) in agents {
+        // Expand ~ to home directory
+        let expanded_path = if path.starts_with("~/") {
+            home.join(&path[2..])
+        } else {
+            PathBuf::from(&path)
+        };
+
+        if expanded_path.exists() {
+            installed.push(agent_id);
+        }
+    }
+
+    Ok(installed)
 }
 
 #[cfg(unix)]

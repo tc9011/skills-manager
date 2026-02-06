@@ -31,6 +31,10 @@
 - 🔄 **GitHub Sync** — Clone, pull, and push your skills to a Git repository
 - 🔗 **Multi-Agent** — Automatically symlink skills to OpenCode, Claude Code, and Cursor
 - ⚙️ **Settings** — Configure agent directories and preferences
+- 🤖 **40+ Agents** — Support for 40 AI coding agents including OpenCode, Claude Code, Cursor, Windsurf, Gemini CLI, GitHub Copilot, and more
+- 🔑 **GitHub Token Auth** — Passwordless Git operations with personal access token
+- 📑 **Multi-Project Tabs** — Open multiple projects simultaneously with persistent tabs
+- 📋 **Copy/Symlink Skills** — Copy or symlink skills between global and project directories
 
 ## Installation
 
