@@ -279,3 +279,130 @@ pub fn scan_project_skills(project_path: String) -> Result<Vec<ProjectSkill>, St
 
     Ok(skills)
 }
+
+fn copy_dir_recursively(src: &PathBuf, dst: &PathBuf) -> Result<(), String> {
+    if !src.exists() {
+        return Err(format!("Source directory does not exist: {:?}", src));
+    }
+
+    fs::create_dir_all(dst)
+        .map_err(|e| format!("Failed to create destination directory: {}", e))?;
+
+    let entries =
+        fs::read_dir(src).map_err(|e| format!("Failed to read source directory: {}", e))?;
+
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+        let src_path = entry.path();
+        let file_name = entry.file_name();
+        let dst_path = dst.join(&file_name);
+
+        if src_path.is_dir() {
+            copy_dir_recursively(&src_path, &dst_path)?;
+        } else {
+            fs::copy(&src_path, &dst_path)
+                .map_err(|e| format!("Failed to copy file {:?}: {}", file_name, e))?;
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn copy_skill(source_path: String, dest_dir: String) -> Result<String, String> {
+    let src = PathBuf::from(&source_path);
+    let dst_parent = PathBuf::from(&dest_dir);
+
+    if !src.exists() {
+        return Err("Source skill directory does not exist".to_string());
+    }
+
+    let skill_name = src
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or("Invalid source path")?;
+
+    let dst = dst_parent.join(skill_name);
+
+    if dst.exists() {
+        return Err(format!(
+            "Skill '{}' already exists at destination. Delete it first to overwrite.",
+            skill_name
+        ));
+    }
+
+    fs::create_dir_all(&dst_parent)
+        .map_err(|e| format!("Failed to create destination directory: {}", e))?;
+
+    copy_dir_recursively(&src, &dst)?;
+
+    Ok(dst.to_string_lossy().to_string())
+}
+
+#[cfg(unix)]
+#[tauri::command]
+pub fn symlink_skill(source_path: String, dest_dir: String) -> Result<String, String> {
+    use std::os::unix::fs::symlink;
+
+    let src = PathBuf::from(&source_path);
+    let dst_parent = PathBuf::from(&dest_dir);
+
+    if !src.exists() {
+        return Err("Source skill directory does not exist".to_string());
+    }
+
+    let skill_name = src
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or("Invalid source path")?;
+
+    let dst = dst_parent.join(skill_name);
+
+    if dst.exists() {
+        return Err(format!(
+            "Skill '{}' already exists at destination. Delete it first to create symlink.",
+            skill_name
+        ));
+    }
+
+    fs::create_dir_all(&dst_parent)
+        .map_err(|e| format!("Failed to create destination directory: {}", e))?;
+
+    symlink(&src, &dst).map_err(|e| format!("Failed to create symlink: {}", e))?;
+
+    Ok(dst.to_string_lossy().to_string())
+}
+
+#[cfg(windows)]
+#[tauri::command]
+pub fn symlink_skill(source_path: String, dest_dir: String) -> Result<String, String> {
+    use std::os::windows::fs::symlink_dir;
+
+    let src = PathBuf::from(&source_path);
+    let dst_parent = PathBuf::from(&dest_dir);
+
+    if !src.exists() {
+        return Err("Source skill directory does not exist".to_string());
+    }
+
+    let skill_name = src
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or("Invalid source path")?;
+
+    let dst = dst_parent.join(skill_name);
+
+    if dst.exists() {
+        return Err(format!(
+            "Skill '{}' already exists at destination. Delete it first to create symlink.",
+            skill_name
+        ));
+    }
+
+    fs::create_dir_all(&dst_parent)
+        .map_err(|e| format!("Failed to create destination directory: {}", e))?;
+
+    symlink_dir(&src, &dst).map_err(|e| format!("Failed to create symlink: {}", e))?;
+
+    Ok(dst.to_string_lossy().to_string())
+}
