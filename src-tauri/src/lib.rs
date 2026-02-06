@@ -6,8 +6,8 @@ use commands::skills::{
     scan_global_skills, scan_project_skills,
 };
 use commands::sync::{
-    get_git_remote, get_sync_config, git_add_commit_push, git_clone_repo, git_init_repo, git_pull,
-    git_push, git_status, is_git_repo, save_sync_config,
+    check_skills_folder_exists, get_git_remote, get_sync_config, git_add_commit_push,
+    git_clone_repo, git_init_repo, git_pull, git_push, git_status, is_git_repo, save_sync_config,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -34,6 +34,7 @@ pub fn run() {
             git_add_commit_push,
             is_git_repo,
             get_git_remote,
+            check_skills_folder_exists,
             get_app_settings,
             save_app_settings
         ])

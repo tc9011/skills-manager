@@ -15,6 +15,7 @@ import {
   Loader2,
   Link,
   Unlink,
+  FolderOpen,
 } from "lucide-react";
 
 interface SyncConfig {
@@ -38,6 +39,7 @@ export function SyncPanel() {
   });
   const [isGitRepo, setIsGitRepo] = useState(false);
   const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
+  const [hasExistingFolder, setHasExistingFolder] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [result, setResult] = useState<GitResult | null>(null);
@@ -49,15 +51,17 @@ export function SyncPanel() {
   const loadStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const [configResult, isRepo, remote] = await Promise.all([
+      const [configResult, isRepo, remote, folderExists] = await Promise.all([
         invoke<SyncConfig>("get_sync_config"),
         invoke<boolean>("is_git_repo"),
         invoke<string | null>("get_git_remote"),
+        invoke<boolean>("check_skills_folder_exists"),
       ]);
 
       setConfig(configResult);
       setIsGitRepo(isRepo);
       setRemoteUrl(remote);
+      setHasExistingFolder(folderExists);
       setRepoUrlInput(configResult.repo_url || "");
       setBranchInput(configResult.branch || "main");
     } catch (err) {
@@ -79,6 +83,41 @@ export function SyncPanel() {
 
     try {
       const res = await invoke<GitResult>("git_clone_repo", {
+        repoUrl: repoUrlInput.trim(),
+        branch: branchInput,
+      });
+
+      setResult(res);
+
+      if (res.success) {
+        await invoke("save_sync_config", {
+          config: {
+            repo_url: repoUrlInput.trim(),
+            branch: branchInput,
+            auto_sync: false,
+            last_sync: new Date().toISOString(),
+          },
+        });
+        loadStatus();
+      }
+    } catch (err) {
+      setResult({
+        success: false,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleInitRepo = async () => {
+    if (!repoUrlInput.trim()) return;
+
+    setSyncing(true);
+    setResult(null);
+
+    try {
+      const res = await invoke<GitResult>("git_init_repo", {
         repoUrl: repoUrlInput.trim(),
         branch: branchInput,
       });
@@ -215,52 +254,104 @@ export function SyncPanel() {
       </Card>
 
       {!isGitRepo ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Setup Repository</CardTitle>
-            <CardDescription>
-              Clone a GitHub repository to sync your skills
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="repo-url">Repository URL</Label>
-              <Input
-                id="repo-url"
-                placeholder="https://github.com/username/skills-repo.git"
-                value={repoUrlInput}
-                onChange={(e) => setRepoUrlInput(e.target.value)}
-                disabled={syncing}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="branch">Branch</Label>
-              <Input
-                id="branch"
-                placeholder="main"
-                value={branchInput}
-                onChange={(e) => setBranchInput(e.target.value)}
-                disabled={syncing}
-              />
-            </div>
-            <Button
-              onClick={handleSetupRepo}
-              disabled={syncing || !repoUrlInput.trim()}
-            >
-              {syncing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Cloning...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2" />
-                  Clone Repository
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+        hasExistingFolder ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FolderOpen className="h-5 w-5" />
+                Initialize Repository
+              </CardTitle>
+              <CardDescription>
+                Existing skills folder found. Connect it to a GitHub repository.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="repo-url">Repository URL</Label>
+                <Input
+                  id="repo-url"
+                  placeholder="https://github.com/username/skills-repo.git"
+                  value={repoUrlInput}
+                  onChange={(e) => setRepoUrlInput(e.target.value)}
+                  disabled={syncing}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="branch">Branch</Label>
+                <Input
+                  id="branch"
+                  placeholder="main"
+                  value={branchInput}
+                  onChange={(e) => setBranchInput(e.target.value)}
+                  disabled={syncing}
+                />
+              </div>
+              <Button
+                onClick={handleInitRepo}
+                disabled={syncing || !repoUrlInput.trim()}
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Initializing...
+                  </>
+                ) : (
+                  <>
+                    <GitBranch className="h-4 w-4 mr-2" />
+                    Initialize Repository
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Setup Repository</CardTitle>
+              <CardDescription>
+                Clone a GitHub repository to sync your skills
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="repo-url">Repository URL</Label>
+                <Input
+                  id="repo-url"
+                  placeholder="https://github.com/username/skills-repo.git"
+                  value={repoUrlInput}
+                  onChange={(e) => setRepoUrlInput(e.target.value)}
+                  disabled={syncing}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="branch">Branch</Label>
+                <Input
+                  id="branch"
+                  placeholder="main"
+                  value={branchInput}
+                  onChange={(e) => setBranchInput(e.target.value)}
+                  disabled={syncing}
+                />
+              </div>
+              <Button
+                onClick={handleSetupRepo}
+                disabled={syncing || !repoUrlInput.trim()}
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Cloning...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Clone Repository
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        )
       ) : (
         <>
           <Card>

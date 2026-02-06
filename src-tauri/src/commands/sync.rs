@@ -196,6 +196,12 @@ pub fn is_git_repo() -> Result<bool, String> {
 }
 
 #[tauri::command]
+pub fn check_skills_folder_exists() -> Result<bool, String> {
+    let skills_path = get_skills_repo_path()?;
+    Ok(skills_path.exists())
+}
+
+#[tauri::command]
 pub fn get_git_remote() -> Result<Option<String>, String> {
     let skills_path = get_skills_repo_path()?;
 
