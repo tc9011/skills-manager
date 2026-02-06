@@ -1,14 +1,16 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FolderOpen,
   Loader2,
   FileText,
   AlertCircle,
   X,
+  Plus,
+  Clock,
 } from "lucide-react";
 
 interface ProjectSkill {
@@ -17,32 +19,104 @@ interface ProjectSkill {
   path: string;
 }
 
+interface OpenProject {
+  path: string;
+  skills: ProjectSkill[];
+  loading: boolean;
+  error: string | null;
+}
+
+interface AppSettings {
+  recent_projects: string[];
+  active_projects: string[];
+}
+
 interface ProjectPanelProps {
   onSkillClick?: (skill: ProjectSkill) => void;
 }
 
 export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
-  const [projectPath, setProjectPath] = useState<string | null>(null);
-  const [skills, setSkills] = useState<ProjectSkill[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<OpenProject[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [recentProjects, setRecentProjects] = useState<string[]>([]);
 
-  const loadProjectSkills = useCallback(async (path: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await invoke<ProjectSkill[]>("scan_project_skills", {
-        projectPath: path,
-      });
-      setSkills(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      setSkills([]);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    loadRecentProjects();
   }, []);
+
+  const loadRecentProjects = async () => {
+    try {
+      const settings = await invoke<AppSettings>("get_app_settings");
+      setRecentProjects(settings.recent_projects || []);
+    } catch {
+      setRecentProjects([]);
+    }
+  };
+
+  const loadProjectSkills = useCallback(
+    async (projectIndex: number, path: string) => {
+      setProjects((prev) =>
+        prev.map((p, i) =>
+          i === projectIndex ? { ...p, loading: true, error: null } : p
+        )
+      );
+
+      try {
+        const result = await invoke<ProjectSkill[]>("scan_project_skills", {
+          projectPath: path,
+        });
+        setProjects((prev) =>
+          prev.map((p, i) =>
+            i === projectIndex ? { ...p, skills: result, loading: false } : p
+          )
+        );
+      } catch (err) {
+        setProjects((prev) =>
+          prev.map((p, i) =>
+            i === projectIndex
+              ? {
+                  ...p,
+                  error: err instanceof Error ? err.message : String(err),
+                  skills: [],
+                  loading: false,
+                }
+              : p
+          )
+        );
+      }
+    },
+    []
+  );
+
+  const openProject = useCallback(
+    async (path: string) => {
+      const existingIndex = projects.findIndex((p) => p.path === path);
+      if (existingIndex >= 0) {
+        setActiveIndex(existingIndex);
+        return;
+      }
+
+      const newProject: OpenProject = {
+        path,
+        skills: [],
+        loading: true,
+        error: null,
+      };
+
+      const newIndex = projects.length;
+      setProjects((prev) => [...prev, newProject]);
+      setActiveIndex(newIndex);
+
+      loadProjectSkills(newIndex, path);
+
+      const updatedRecent = [
+        path,
+        ...recentProjects.filter((p) => p !== path),
+      ].slice(0, 10);
+      setRecentProjects(updatedRecent);
+    },
+    [projects, recentProjects, loadProjectSkills]
+  );
 
   const handleSelectFolder = async () => {
     try {
@@ -53,21 +127,31 @@ export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
       });
 
       if (selected && typeof selected === "string") {
-        setProjectPath(selected);
-        loadProjectSkills(selected);
+        openProject(selected);
       }
     } catch (err) {
       console.error("Failed to open folder dialog:", err);
     }
   };
 
-  const handleCloseProject = () => {
-    setProjectPath(null);
-    setSkills([]);
-    setError(null);
+  const handleCloseProject = (index: number) => {
+    setProjects((prev) => prev.filter((_, i) => i !== index));
+
+    if (activeIndex === index) {
+      setActiveIndex(Math.max(0, index - 1));
+    } else if (activeIndex > index) {
+      setActiveIndex(activeIndex - 1);
+    }
   };
 
-  if (!projectPath) {
+  const getProjectName = (path: string) => {
+    const parts = path.split("/");
+    return parts[parts.length - 1] || path;
+  };
+
+  const activeProject = projects[activeIndex];
+
+  if (projects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
         <FolderOpen className="h-12 w-12 mb-4 opacity-50" />
@@ -79,106 +163,148 @@ export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
           <FolderOpen className="h-4 w-4 mr-2" />
           Open Project Folder
         </Button>
+        {recentProjects.length > 0 && (
+          <div className="mt-6 w-full max-w-sm">
+            <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              Recent Projects
+            </p>
+            <div className="space-y-1">
+              {recentProjects.slice(0, 5).map((path) => (
+                <button
+                  key={path}
+                  onClick={() => openProject(path)}
+                  className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent flex items-center gap-2 transition-colors"
+                >
+                  <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{getProjectName(path)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FolderOpen className="h-4 w-4" />
-                Current Project
-              </CardTitle>
-              <CardDescription className="mt-1">
-                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                  {projectPath}
-                </code>
-              </CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCloseProject}
-              className="h-8 w-8"
+      <div className="flex items-center gap-1 border-b border-border pb-2 overflow-x-auto">
+        {projects.map((project, index) => (
+          <div
+            key={project.path}
+            className={`group flex items-center gap-1 px-3 py-1.5 rounded-t-md cursor-pointer transition-colors ${
+              index === activeIndex
+                ? "bg-accent text-accent-foreground"
+                : "hover:bg-muted"
+            }`}
+            onClick={() => setActiveIndex(index)}
+          >
+            <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-sm truncate max-w-32">
+              {getProjectName(project.path)}
+            </span>
+            <button
+              className="ml-1 p-0.5 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCloseProject(index);
+              }}
             >
-              <X className="h-4 w-4" />
-            </Button>
+              <X className="h-3 w-3" />
+            </button>
           </div>
-        </CardHeader>
-      </Card>
+        ))}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0"
+          onClick={handleSelectFolder}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin mb-4" />
-          <p>Scanning project skills...</p>
-        </div>
-      ) : error ? (
-        <Card className="border-destructive/30">
-          <CardContent className="pt-4">
-            <div className="flex items-start gap-2 text-destructive">
-              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              <p className="text-sm">{error}</p>
+      {activeProject && (
+        <>
+          <div className="text-xs text-muted-foreground">
+            <code className="bg-muted px-1.5 py-0.5 rounded">
+              {activeProject.path}
+            </code>
+          </div>
+
+          {activeProject.loading ? (
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin mb-4" />
+              <p>Scanning project skills...</p>
             </div>
-          </CardContent>
-        </Card>
-      ) : skills.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground mb-4">
-              No skills found in this project
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Create a <code className="bg-muted px-1 py-0.5 rounded">.opencode/skill</code> directory with SKILL.md files
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3">
-          {skills.map((skill) => (
-            <Card
-              key={skill.path}
-              className="cursor-pointer hover:bg-accent/50 transition-colors"
-              onClick={() => onSkillClick?.(skill)}
-            >
-              <CardHeader className="pb-2 pt-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  {skill.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                  {skill.description || "No description"}
+          ) : activeProject.error ? (
+            <Card className="border-destructive/30">
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-2 text-destructive">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <p className="text-sm">{activeProject.error}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : activeProject.skills.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground mb-4">
+                  No skills found in this project
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Create a{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded">
+                    .opencode/skill
+                  </code>{" "}
+                  directory with SKILL.md files
                 </p>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      )}
-
-      <div className="flex justify-between items-center pt-2">
-        <Button variant="outline" size="sm" onClick={handleSelectFolder}>
-          <FolderOpen className="h-4 w-4 mr-2" />
-          Change Folder
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => loadProjectSkills(projectPath)}
-          disabled={loading}
-        >
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            "Refresh"
+            <div className="grid gap-3">
+              {activeProject.skills.map((skill) => (
+                <Card
+                  key={skill.path}
+                  className="cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => onSkillClick?.(skill)}
+                >
+                  <CardHeader className="pb-2 pt-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      {skill.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {skill.description || "No description"}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
-        </Button>
-      </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                loadProjectSkills(activeIndex, activeProject.path)
+              }
+              disabled={activeProject.loading}
+            >
+              {activeProject.loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Refresh"
+              )}
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
