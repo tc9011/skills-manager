@@ -18,7 +18,6 @@ A unified desktop app that:
 - Provides a single view of all skills
 - Handles symlink management automatically
 - Integrates with Git for backup/sync
-- Offers a discovery mechanism for community skills
 
 ---
 
@@ -34,12 +33,12 @@ A unified desktop app that:
 │  ┌────────────────────────────────────────────────────────┐ │
 │  │                   React Frontend                        │ │
 │  │                                                          │ │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │ │
-│  │  │  Global  │ │ Project  │ │ Discover │ │   Sync   │   │ │
-│  │  │   Tab    │ │   Tab    │ │   Tab    │ │   Tab    │   │ │
-│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘   │ │
-│  │       │            │            │            │          │ │
-│  │       └────────────┴────────────┴────────────┘          │ │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐   │ │
+│  │  │  Global  │ │ Project  │ │   Sync   │   │ │
+│  │  │   Tab    │ │   Tab    │ │   Tab    │   │ │
+│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘   │ │
+│  │       │            │            │          │ │
+│  │       └────────────┴────────────┘          │ │
 │  │                         │                                │ │
 │  │                    invoke()                              │ │
 │  └─────────────────────────┼────────────────────────────────┘ │
@@ -88,8 +87,6 @@ Frontend Components
 │   │   └── SkillDetailDialog.tsx # View/delete skill
 │   ├── project/
 │   │   └── ProjectPanel.tsx    # Project folder skills
-│   ├── discover/
-│   │   └── DiscoverPanel.tsx   # Community skills browser
 │   ├── sync/
 │   │   └── SyncPanel.tsx       # Git sync interface
 │   ├── settings/
@@ -205,25 +202,7 @@ interface SyncConfig {
 - Change Folder → Select different project
 - Refresh → Re-scan current project
 
-### 3. Discover Tab
-
-**Purpose**: Browse and install community skills.
-
-**Behavior**:
-1. Display curated list of featured skills
-2. Allow searching/filtering
-3. Show skill metadata (name, description, author, stars)
-
-**Actions**:
-- Search → Filter displayed skills
-- Install → Run `npx skills add <name>`
-
-**Future Enhancements**:
-- Fetch from online registry API
-- User ratings and reviews
-- Skill versioning
-
-### 4. Sync Tab
+### 3. Sync Tab
 
 **Purpose**: Sync skills with a Git repository.
 
@@ -334,7 +313,6 @@ All file system and shell access is explicitly declared in `src-tauri/capabiliti
 - [x] Global skills management
 - [x] Project skills scanning
 - [x] GitHub sync (clone, pull, push)
-- [x] Community skills discovery
 - [x] Settings configuration
 
 ### Phase 2
@@ -379,7 +357,6 @@ skills-manager/
 │       ├── ui/               # shadcn/ui (generated)
 │       ├── skills/           # Skill components
 │       ├── project/          # Project panel
-│       ├── discover/         # Discovery panel
 │       ├── sync/             # Sync panel
 │       └── settings/         # Settings dialog
 └── src-tauri/

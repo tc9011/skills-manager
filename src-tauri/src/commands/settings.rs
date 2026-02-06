@@ -17,6 +17,10 @@ pub struct AppSettings {
     pub agents: Vec<AgentConfig>,
     #[serde(default)]
     pub github_token: Option<String>,
+    #[serde(default)]
+    pub recent_projects: Vec<String>,
+    #[serde(default)]
+    pub active_projects: Vec<String>,
 }
 
 impl Default for AppSettings {
@@ -24,6 +28,8 @@ impl Default for AppSettings {
         Self {
             global_skills_path: "~/.agents/skills".to_string(),
             github_token: None,
+            recent_projects: Vec::new(),
+            active_projects: Vec::new(),
             agents: vec![
                 AgentConfig {
                     name: "AdaL".to_string(),

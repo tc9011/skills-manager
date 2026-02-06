@@ -1,13 +1,22 @@
 {
-  "name": "tauri-app",
+  "name": "skills-manager",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:tauri": "tauri dev",
     "build": "tsc && vite build",
+    "build:tauri": "tauri build",
+    "build:ci": "tauri build --ci",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "check": "tsc --noEmit",
+    "check:rust": "cd src-tauri && cargo check",
+    "check:all": "pnpm check && pnpm check:rust",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist src-tauri/target",
+    "clean:rust": "cd src-tauri && cargo clean"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
