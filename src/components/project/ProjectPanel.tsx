@@ -32,17 +32,33 @@ interface AppSettings {
 }
 
 interface ProjectPanelProps {
+  projects: string[];
+  onProjectsChange: (projects: string[]) => void;
   onSkillClick?: (skill: ProjectSkill) => void;
 }
 
-export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
-  const [projects, setProjects] = useState<OpenProject[]>([]);
+export function ProjectPanel({
+  projects: projectPaths,
+  onProjectsChange,
+  onSkillClick,
+}: ProjectPanelProps) {
+  const [projectData, setProjectData] = useState<Map<string, OpenProject>>(
+    new Map()
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [recentProjects, setRecentProjects] = useState<string[]>([]);
 
   useEffect(() => {
     loadRecentProjects();
   }, []);
+
+  useEffect(() => {
+    projectPaths.forEach((path) => {
+      if (!projectData.has(path)) {
+        loadProjectSkills(path);
+      }
+    });
+  }, [projectPaths]);
 
   const loadRecentProjects = async () => {
     try {
@@ -53,61 +69,46 @@ export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
     }
   };
 
-  const loadProjectSkills = useCallback(
-    async (projectIndex: number, path: string) => {
-      setProjects((prev) =>
-        prev.map((p, i) =>
-          i === projectIndex ? { ...p, loading: true, error: null } : p
-        )
-      );
+  const loadProjectSkills = useCallback(async (path: string) => {
+    setProjectData((prev) => {
+      const updated = new Map(prev);
+      updated.set(path, { path, skills: [], loading: true, error: null });
+      return updated;
+    });
 
-      try {
-        const result = await invoke<ProjectSkill[]>("scan_project_skills", {
-          projectPath: path,
+    try {
+      const result = await invoke<ProjectSkill[]>("scan_project_skills", {
+        projectPath: path,
+      });
+      setProjectData((prev) => {
+        const updated = new Map(prev);
+        updated.set(path, { path, skills: result, loading: false, error: null });
+        return updated;
+      });
+    } catch (err) {
+      setProjectData((prev) => {
+        const updated = new Map(prev);
+        updated.set(path, {
+          path,
+          skills: [],
+          loading: false,
+          error: err instanceof Error ? err.message : String(err),
         });
-        setProjects((prev) =>
-          prev.map((p, i) =>
-            i === projectIndex ? { ...p, skills: result, loading: false } : p
-          )
-        );
-      } catch (err) {
-        setProjects((prev) =>
-          prev.map((p, i) =>
-            i === projectIndex
-              ? {
-                  ...p,
-                  error: err instanceof Error ? err.message : String(err),
-                  skills: [],
-                  loading: false,
-                }
-              : p
-          )
-        );
-      }
-    },
-    []
-  );
+        return updated;
+      });
+    }
+  }, []);
 
   const openProject = useCallback(
     async (path: string) => {
-      const existingIndex = projects.findIndex((p) => p.path === path);
+      const existingIndex = projectPaths.indexOf(path);
       if (existingIndex >= 0) {
         setActiveIndex(existingIndex);
         return;
       }
 
-      const newProject: OpenProject = {
-        path,
-        skills: [],
-        loading: true,
-        error: null,
-      };
-
-      const newIndex = projects.length;
-      setProjects((prev) => [...prev, newProject]);
-      setActiveIndex(newIndex);
-
-      loadProjectSkills(newIndex, path);
+      onProjectsChange([...projectPaths, path]);
+      setActiveIndex(projectPaths.length);
 
       const updatedRecent = [
         path,
@@ -115,7 +116,7 @@ export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
       ].slice(0, 10);
       setRecentProjects(updatedRecent);
     },
-    [projects, recentProjects, loadProjectSkills]
+    [projectPaths, recentProjects, onProjectsChange]
   );
 
   const handleSelectFolder = async () => {
@@ -135,7 +136,8 @@ export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
   };
 
   const handleCloseProject = (index: number) => {
-    setProjects((prev) => prev.filter((_, i) => i !== index));
+    const newProjects = projectPaths.filter((_, i) => i !== index);
+    onProjectsChange(newProjects);
 
     if (activeIndex === index) {
       setActiveIndex(Math.max(0, index - 1));
@@ -149,9 +151,12 @@ export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
     return parts[parts.length - 1] || path;
   };
 
-  const activeProject = projects[activeIndex];
+  const activeProjectPath = projectPaths[activeIndex];
+  const activeProject = activeProjectPath
+    ? projectData.get(activeProjectPath)
+    : undefined;
 
-  if (projects.length === 0) {
+  if (projectPaths.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
         <FolderOpen className="h-12 w-12 mb-4 opacity-50" />
@@ -190,9 +195,9 @@ export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-1 border-b border-border pb-2 overflow-x-auto">
-        {projects.map((project, index) => (
+        {projectPaths.map((path, index) => (
           <div
-            key={project.path}
+            key={path}
             className={`group flex items-center gap-1 px-3 py-1.5 rounded-t-md cursor-pointer transition-colors ${
               index === activeIndex
                 ? "bg-accent text-accent-foreground"
@@ -202,7 +207,7 @@ export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
           >
             <FolderOpen className="h-3.5 w-3.5 shrink-0" />
             <span className="text-sm truncate max-w-32">
-              {getProjectName(project.path)}
+              {getProjectName(path)}
             </span>
             <button
               className="ml-1 p-0.5 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -291,9 +296,7 @@ export function ProjectPanel({ onSkillClick }: ProjectPanelProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                loadProjectSkills(activeIndex, activeProject.path)
-              }
+              onClick={() => loadProjectSkills(activeProject.path)}
               disabled={activeProject.loading}
             >
               {activeProject.loading ? (
