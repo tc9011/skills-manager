@@ -15,12 +15,15 @@ pub struct AgentConfig {
 pub struct AppSettings {
     pub global_skills_path: String,
     pub agents: Vec<AgentConfig>,
+    #[serde(default)]
+    pub github_token: Option<String>,
 }
 
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
             global_skills_path: "~/.agents/skills".to_string(),
+            github_token: None,
             agents: vec![
                 AgentConfig {
                     name: "AdaL".to_string(),
@@ -327,4 +330,17 @@ pub fn save_app_settings(settings: AppSettings) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&settings)
         .map_err(|e| format!("Failed to serialize: {}", e))?;
     fs::write(&settings_path, content).map_err(|e| format!("Failed to write settings: {}", e))
+}
+
+#[tauri::command]
+pub fn get_github_token() -> Result<Option<String>, String> {
+    let settings = get_app_settings()?;
+    Ok(settings.github_token)
+}
+
+#[tauri::command]
+pub fn save_github_token(token: String) -> Result<(), String> {
+    let mut settings = get_app_settings()?;
+    settings.github_token = if token.is_empty() { None } else { Some(token) };
+    save_app_settings(settings)
 }
