@@ -16,6 +16,9 @@ import {
   Link,
   Unlink,
   FolderOpen,
+  Eye,
+  EyeOff,
+  Key,
 } from "lucide-react";
 
 interface SyncConfig {
@@ -47,25 +50,32 @@ export function SyncPanel() {
   const [repoUrlInput, setRepoUrlInput] = useState("");
   const [branchInput, setBranchInput] = useState("main");
   const [commitMessage, setCommitMessage] = useState("");
+  const [githubToken, setGithubToken] = useState("");
+  const [showToken, setShowToken] = useState(false);
+  const [tokenSaved, setTokenSaved] = useState(false);
 
   const loadStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const [configResult, isRepo, remote, folderExists] = await Promise.all([
+      console.log("[sync] Loading status...");
+      const [configResult, isRepo, remote, folderExists, token] = await Promise.all([
         invoke<SyncConfig>("get_sync_config"),
         invoke<boolean>("is_git_repo"),
         invoke<string | null>("get_git_remote"),
         invoke<boolean>("check_skills_folder_exists"),
+        invoke<string | null>("get_github_token"),
       ]);
 
+      console.log("[sync] Status loaded:", { configResult, isRepo, remote, folderExists, hasToken: !!token });
       setConfig(configResult);
       setIsGitRepo(isRepo);
       setRemoteUrl(remote);
       setHasExistingFolder(folderExists);
       setRepoUrlInput(configResult.repo_url || "");
       setBranchInput(configResult.branch || "main");
+      setGithubToken(token || "");
     } catch (err) {
-      console.error("Failed to load sync status:", err);
+      console.error("[sync] Failed to load sync status:", err);
     } finally {
       setLoading(false);
     }
@@ -82,11 +92,13 @@ export function SyncPanel() {
     setResult(null);
 
     try {
+      console.log("[sync] Cloning repo:", { repoUrl: repoUrlInput, branch: branchInput });
       const res = await invoke<GitResult>("git_clone_repo", {
         repoUrl: repoUrlInput.trim(),
         branch: branchInput,
       });
 
+      console.log("[sync] Clone result:", res);
       setResult(res);
 
       if (res.success) {
@@ -101,6 +113,7 @@ export function SyncPanel() {
         loadStatus();
       }
     } catch (err) {
+      console.error("[sync] Clone error:", err);
       setResult({
         success: false,
         message: err instanceof Error ? err.message : String(err),
@@ -117,11 +130,13 @@ export function SyncPanel() {
     setResult(null);
 
     try {
+      console.log("[sync] Initializing repo:", { repoUrl: repoUrlInput, branch: branchInput });
       const res = await invoke<GitResult>("git_init_repo", {
         repoUrl: repoUrlInput.trim(),
         branch: branchInput,
       });
 
+      console.log("[sync] Init result:", res);
       setResult(res);
 
       if (res.success) {
@@ -136,6 +151,7 @@ export function SyncPanel() {
         loadStatus();
       }
     } catch (err) {
+      console.error("[sync] Init error:", err);
       setResult({
         success: false,
         message: err instanceof Error ? err.message : String(err),
@@ -150,7 +166,9 @@ export function SyncPanel() {
     setResult(null);
 
     try {
+      console.log("[sync] Pulling changes...");
       const res = await invoke<GitResult>("git_pull");
+      console.log("[sync] Pull result:", res);
       setResult(res);
 
       if (res.success) {
@@ -162,6 +180,7 @@ export function SyncPanel() {
         });
       }
     } catch (err) {
+      console.error("[sync] Pull error:", err);
       setResult({
         success: false,
         message: err instanceof Error ? err.message : String(err),
@@ -178,9 +197,11 @@ export function SyncPanel() {
     setResult(null);
 
     try {
+      console.log("[sync] Pushing changes:", { message: commitMessage });
       const res = await invoke<GitResult>("git_add_commit_push", {
         message: commitMessage.trim(),
       });
+      console.log("[sync] Push result:", res);
       setResult(res);
 
       if (res.success) {
@@ -193,12 +214,23 @@ export function SyncPanel() {
         });
       }
     } catch (err) {
+      console.error("[sync] Push error:", err);
       setResult({
         success: false,
         message: err instanceof Error ? err.message : String(err),
       });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSaveToken = async () => {
+    try {
+      await invoke("save_github_token", { token: githubToken });
+      setTokenSaved(true);
+      setTimeout(() => setTokenSaved(false), 2000);
+    } catch (err) {
+      console.error("[sync] Failed to save token:", err);
     }
   };
 
@@ -213,6 +245,61 @@ export function SyncPanel() {
 
   return (
     <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5" />
+            GitHub Token
+          </CardTitle>
+          <CardDescription>
+            Personal access token for passwordless git operations
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="github-token">Personal Access Token</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="github-token"
+                  type={showToken ? "text" : "password"}
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setShowToken(!showToken)}
+                >
+                  {showToken ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <Button onClick={handleSaveToken} disabled={tokenSaved}>
+                {tokenSaved ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Saved
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Create a token at GitHub → Settings → Developer settings → Personal access tokens
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
