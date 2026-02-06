@@ -6,6 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   RefreshCw,
   GitBranch,
   Upload,
@@ -16,9 +24,7 @@ import {
   Link,
   Unlink,
   FolderOpen,
-  Eye,
-  EyeOff,
-  Key,
+  Settings,
 } from "lucide-react";
 
 interface SyncConfig {
@@ -33,7 +39,11 @@ interface GitResult {
   message: string;
 }
 
-export function SyncPanel() {
+interface SyncPanelProps {
+  onNavigateToSettings?: () => void;
+}
+
+export function SyncPanel({ onNavigateToSettings }: SyncPanelProps) {
   const [config, setConfig] = useState<SyncConfig>({
     repo_url: null,
     branch: "main",
@@ -50,9 +60,7 @@ export function SyncPanel() {
   const [repoUrlInput, setRepoUrlInput] = useState("");
   const [branchInput, setBranchInput] = useState("main");
   const [commitMessage, setCommitMessage] = useState("");
-  const [githubToken, setGithubToken] = useState("");
-  const [showToken, setShowToken] = useState(false);
-  const [tokenSaved, setTokenSaved] = useState(false);
+  const [showTokenDialog, setShowTokenDialog] = useState(false);
 
   const loadStatus = useCallback(async () => {
     setLoading(true);
@@ -73,7 +81,9 @@ export function SyncPanel() {
       setHasExistingFolder(folderExists);
       setRepoUrlInput(configResult.repo_url || "");
       setBranchInput(configResult.branch || "main");
-      setGithubToken(token || "");
+      if (!token) {
+        setShowTokenDialog(true);
+      }
     } catch (err) {
       console.error("[sync] Failed to load sync status:", err);
     } finally {
@@ -224,16 +234,6 @@ export function SyncPanel() {
     }
   };
 
-  const handleSaveToken = async () => {
-    try {
-      await invoke("save_github_token", { token: githubToken });
-      setTokenSaved(true);
-      setTimeout(() => setTokenSaved(false), 2000);
-    } catch (err) {
-      console.error("[sync] Failed to save token:", err);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -245,60 +245,35 @@ export function SyncPanel() {
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
-            GitHub Token
-          </CardTitle>
-          <CardDescription>
-            Personal access token for passwordless git operations
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="github-token">Personal Access Token</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  id="github-token"
-                  type={showToken ? "text" : "password"}
-                  placeholder="ghp_xxxxxxxxxxxx"
-                  value={githubToken}
-                  onChange={(e) => setGithubToken(e.target.value)}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                  onClick={() => setShowToken(!showToken)}
-                >
-                  {showToken ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <Button onClick={handleSaveToken} disabled={tokenSaved}>
-                {tokenSaved ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Saved
-                  </>
-                ) : (
-                  "Save"
-                )}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Create a token at GitHub → Settings → Developer settings → Personal access tokens
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-amber-500" />
+              GitHub Token Required
+            </DialogTitle>
+            <DialogDescription>
+              Please configure your GitHub personal access token in Settings to enable sync operations.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowTokenDialog(false)}
+            >
+              Later
+            </Button>
+            <Button
+              onClick={() => {
+                setShowTokenDialog(false);
+                onNavigateToSettings?.();
+              }}
+            >
+              Go to Settings
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>

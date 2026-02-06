@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Check,
-  Loader2,
+  CheckCircle2,
   Search,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface AgentConfig {
@@ -65,9 +66,10 @@ export function SettingsPanel() {
   const [agents, setAgents] = useState<AgentConfig[]>(DEFAULT_AGENTS);
   const [installedAgentIds, setInstalledAgentIds] = useState<string[]>([]);
   const [globalSkillsPath, setGlobalSkillsPath] = useState("~/.agents/skills");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [githubToken, setGithubToken] = useState("");
+  const [showToken, setShowToken] = useState(false);
+  const [tokenSaved, setTokenSaved] = useState(false);
 
   const filteredAgents = agents.filter((agent) =>
     agent.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -88,10 +90,13 @@ export function SettingsPanel() {
 
   const loadSettings = async () => {
     try {
-      const config = await invoke<{
-        global_skills_path?: string;
-        agents?: AgentConfig[];
-      }>("get_app_settings").catch(() => null);
+      const [config, token] = await Promise.all([
+        invoke<{
+          global_skills_path?: string;
+          agents?: AgentConfig[];
+        }>("get_app_settings").catch(() => null),
+        invoke<string | null>("get_github_token").catch(() => null),
+      ]);
 
       if (config) {
         if (config.global_skills_path) {
@@ -109,28 +114,21 @@ export function SettingsPanel() {
           setInstalledAgentIds(installed);
         }
       }
+      if (token) {
+        setGithubToken(token);
+      }
     } catch (err) {
       console.error("Failed to load settings:", err);
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    setSaved(false);
-
+  const handleSaveToken = async () => {
     try {
-      await invoke("save_app_settings", {
-        settings: {
-          global_skills_path: globalSkillsPath,
-          agents,
-        },
-      });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      await invoke("save_github_token", { token: githubToken });
+      setTokenSaved(true);
+      setTimeout(() => setTokenSaved(false), 2000);
     } catch (err) {
-      console.error("Failed to save settings:", err);
-    } finally {
-      setSaving(false);
+      console.error("Failed to save token:", err);
     }
   };
 
@@ -140,6 +138,50 @@ export function SettingsPanel() {
         <h2 className="text-lg font-semibold">Settings</h2>
         <p className="text-sm text-muted-foreground">
           Configure Skills Manager preferences
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <Label>GitHub Token</Label>
+        <p className="text-xs text-muted-foreground">
+          Personal access token for passwordless git operations in GitHub Sync
+        </p>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              type={showToken ? "text" : "password"}
+              placeholder="ghp_xxxxxxxxxxxx"
+              value={githubToken}
+              onChange={(e) => setGithubToken(e.target.value)}
+              className="pr-10"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              onClick={() => setShowToken(!showToken)}
+            >
+              {showToken ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <Button onClick={handleSaveToken} disabled={tokenSaved}>
+            {tokenSaved ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Saved
+              </>
+            ) : (
+              "Save"
+            )}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Create a token at GitHub → Settings → Developer settings → Personal access tokens
         </p>
       </div>
 
@@ -218,27 +260,6 @@ export function SettingsPanel() {
             })}
           </div>
         </ScrollArea>
-      </div>
-
-      <div className="flex items-center justify-between pt-4 border-t border-border">
-        <div className="text-sm text-muted-foreground">
-          {saved && (
-            <span className="flex items-center gap-1 text-emerald-400">
-              <Check className="h-4 w-4" />
-              Settings saved
-            </span>
-          )}
-        </div>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Save Settings"
-          )}
-        </Button>
       </div>
     </div>
   );

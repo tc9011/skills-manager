@@ -8,9 +8,10 @@ interface SkillCardProps {
   onClick?: () => void;
   onSync?: () => void;
   onDelete?: () => void;
+  hideAgentBadges?: boolean;
 }
 
-export function SkillCard({ skill, onClick, onSync, onDelete }: SkillCardProps) {
+export function SkillCard({ skill, onClick, onSync, onDelete, hideAgentBadges }: SkillCardProps) {
   return (
     <div 
       className="bg-white rounded-xl shadow-sm border border-[hsl(30_10%_90%)] overflow-hidden hover:shadow-md transition-shadow"
@@ -24,26 +25,28 @@ export function SkillCard({ skill, onClick, onSync, onDelete }: SkillCardProps) 
         </h3>
 
         {/* Badges */}
-        <div className="flex flex-wrap gap-2 mb-3">
-          <Badge className="bg-[hsl(18_65%_52%)] text-white hover:bg-[hsl(18_65%_47%)]">
-            Hub
-          </Badge>
-          {skill.installed_in.length > 0 ? (
-            skill.installed_in.map((agent) => (
-              <Badge
-                key={agent}
-                variant="outline"
-                className="border-[hsl(30_10%_85%)] text-[hsl(20_10%_40%)]"
-              >
-                {agent}
-              </Badge>
-            ))
-          ) : (
-            <Badge variant="outline" className="border-[hsl(30_10%_85%)] text-[hsl(20_5%_55%)]">
-              Not installed
+        {!hideAgentBadges && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            <Badge className="bg-[hsl(18_65%_52%)] text-white hover:bg-[hsl(18_65%_47%)]">
+              Hub
             </Badge>
-          )}
-        </div>
+            {skill.installed_in.length > 0 ? (
+              skill.installed_in.map((agent) => (
+                <Badge
+                  key={agent}
+                  variant="outline"
+                  className="border-[hsl(30_10%_85%)] text-[hsl(20_10%_40%)]"
+                >
+                  {agent}
+                </Badge>
+              ))
+            ) : (
+              <Badge variant="outline" className="border-[hsl(30_10%_85%)] text-[hsl(20_5%_55%)]">
+                Not installed
+              </Badge>
+            )}
+          </div>
+        )}
 
         {/* Description */}
         <p className="text-sm text-[hsl(20_10%_40%)] leading-relaxed mb-4">

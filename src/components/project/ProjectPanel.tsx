@@ -1,16 +1,14 @@
 import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { homeDir } from "@tauri-apps/api/path";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { SkillCard } from "@/components/skills/SkillCard";
+import type { Skill } from "@/types/skill";
 import {
   FolderOpen,
   Loader2,
   FileText,
   AlertCircle,
-  Copy,
-  Link,
-  CheckCircle2,
 } from "lucide-react";
 
 interface ProjectSkill {
@@ -21,7 +19,7 @@ interface ProjectSkill {
 
 interface ProjectPanelProps {
   projectPath: string;
-  onSkillClick?: (skill: ProjectSkill) => void;
+  onSkillClick?: (skill: Skill) => void;
 }
 
 export function ProjectPanel({
@@ -31,11 +29,6 @@ export function ProjectPanel({
   const [skills, setSkills] = useState<ProjectSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionStatus, setActionStatus] = useState<{
-    skillPath: string;
-    type: "copying" | "linking" | "success" | "error";
-    message?: string;
-  } | null>(null);
 
   const loadProjectSkills = useCallback(async () => {
     setLoading(true);
@@ -58,54 +51,18 @@ export function ProjectPanel({
     loadProjectSkills();
   }, [loadProjectSkills]);
 
-  const handleCopyToGlobal = async (skill: ProjectSkill, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      setActionStatus({ skillPath: skill.path, type: "copying" });
-      const home = await homeDir();
-      const destDir = `${home}.agents/skills`;
-      const result = await invoke<string>("copy_skill", {
-        sourcePath: skill.path,
-        destDir,
-      });
-      setActionStatus({ skillPath: skill.path, type: "success", message: result });
-      setTimeout(() => setActionStatus(null), 3000);
-    } catch (err) {
-      setActionStatus({
-        skillPath: skill.path,
-        type: "error",
-        message: err instanceof Error ? err.message : String(err),
-      });
-      setTimeout(() => setActionStatus(null), 3000);
-    }
-  };
-
-  const handleSymlinkToGlobal = async (skill: ProjectSkill, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      setActionStatus({ skillPath: skill.path, type: "linking" });
-      const home = await homeDir();
-      const destDir = `${home}.agents/skills`;
-      const result = await invoke<string>("symlink_skill", {
-        sourcePath: skill.path,
-        destDir,
-      });
-      setActionStatus({ skillPath: skill.path, type: "success", message: result });
-      setTimeout(() => setActionStatus(null), 3000);
-    } catch (err) {
-      setActionStatus({
-        skillPath: skill.path,
-        type: "error",
-        message: err instanceof Error ? err.message : String(err),
-      });
-      setTimeout(() => setActionStatus(null), 3000);
-    }
-  };
-
   const getProjectName = (path: string) => {
     const parts = path.split("/");
     return parts[parts.length - 1] || path;
   };
+
+  const convertToSkill = (projectSkill: ProjectSkill): Skill => ({
+    name: projectSkill.name,
+    description: projectSkill.description,
+    path: projectSkill.path,
+    source: "local",
+    installed_in: [],
+  });
 
   return (
     <div className="space-y-4">
@@ -168,83 +125,16 @@ export function ProjectPanel({
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {skills.map((skill) => {
-            const isActionPending =
-              actionStatus?.skillPath === skill.path &&
-              (actionStatus.type === "copying" || actionStatus.type === "linking");
-            const isActionResult =
-              actionStatus?.skillPath === skill.path &&
-              (actionStatus.type === "success" || actionStatus.type === "error");
-
+            const skillData = convertToSkill(skill);
             return (
-              <Card
+              <SkillCard
                 key={skill.path}
-                className="cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => onSkillClick?.(skill)}
-              >
-                <CardHeader className="pb-2 pt-3">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      {skill.name}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => handleCopyToGlobal(skill, e)}
-                        disabled={isActionPending}
-                        title="Copy to Global Skills"
-                      >
-                        {actionStatus?.skillPath === skill.path &&
-                        actionStatus.type === "copying" ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Copy className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => handleSymlinkToGlobal(skill, e)}
-                        disabled={isActionPending}
-                        title="Symlink to Global Skills"
-                      >
-                        {actionStatus?.skillPath === skill.path &&
-                        actionStatus.type === "linking" ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Link className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pb-3">
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {skill.description || "No description"}
-                  </p>
-                  {isActionResult && actionStatus && (
-                    <div
-                      className={`mt-2 flex items-center gap-1 text-xs ${
-                        actionStatus.type === "success"
-                          ? "text-emerald-400"
-                          : "text-destructive"
-                      }`}
-                    >
-                      {actionStatus.type === "success" ? (
-                        <CheckCircle2 className="h-3 w-3" />
-                      ) : (
-                        <AlertCircle className="h-3 w-3" />
-                      )}
-                      <span className="truncate">{actionStatus.message}</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                skill={skillData}
+                onClick={() => onSkillClick?.(skillData)}
+                hideAgentBadges
+              />
             );
           })}
         </div>

@@ -169,7 +169,7 @@ function App() {
       );
     }
     if (activeSection === "sync") {
-      return <SyncPanel />;
+      return <SyncPanel onNavigateToSettings={() => setActiveSection("settings")} />;
     }
     return (
       <SkillsList

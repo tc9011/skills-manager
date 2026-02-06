@@ -1,4 +1,4 @@
-import { Layers, Settings, Plus, FolderOpen, X } from "lucide-react";
+import { Layers, Settings, Plus, FolderOpen, X, GitBranch } from "lucide-react";
 
 interface SidebarProps {
   agents: Array<{ id: string; name: string; enabled: boolean }>;
@@ -78,7 +78,14 @@ export function Sidebar({ agents, projects, activeSection, onSectionChange, onAd
         </div>
       </div>
       
-      <div className="p-3 border-t border-[hsl(30_10%_90%)] shrink-0">
+      <div className="p-3 border-t border-[hsl(30_10%_90%)] shrink-0 space-y-1">
+        <button 
+          onClick={() => onSectionChange("sync")}
+          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${activeSection === "sync" ? "bg-[hsl(30_20%_94%)] text-[hsl(20_10%_20%)]" : "text-[hsl(20_10%_30%)] hover:bg-[hsl(30_20%_94%)]/50"}`}
+        >
+          <GitBranch className="h-4 w-4" />
+          GitHub Sync
+        </button>
         <button 
           onClick={() => onSectionChange("settings")}
           className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${activeSection === "settings" ? "bg-[hsl(30_20%_94%)] text-[hsl(20_10%_20%)]" : "text-[hsl(20_10%_30%)] hover:bg-[hsl(30_20%_94%)]/50"}`}
