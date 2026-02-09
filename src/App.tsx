@@ -9,6 +9,8 @@ import { SkillDetailDialog } from "@/components/skills/SkillDetailDialog";
 import { SyncPanel } from "@/components/sync/SyncPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { ProjectPanel } from "@/components/project/ProjectPanel";
+import { SourcesPanel } from "@/components/sources/SourcesPanel";
+import { VersionPanel } from "@/components/version/VersionPanel";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useSkills } from "@/hooks/useSkills";
 import type { Skill } from "@/types/skill";
@@ -177,6 +179,12 @@ function App() {
   const renderMainContent = () => {
     if (activeSection === "settings") {
       return <SettingsPanel />;
+    }
+    if (activeSection === "sources") {
+      return <SourcesPanel />;
+    }
+    if (activeSection === "history") {
+      return <VersionPanel />;
     }
     if (activeSection.startsWith("project-")) {
       const projectPath = activeSection.replace("project-", "");

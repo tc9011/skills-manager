@@ -1,4 +1,4 @@
-import { Layers, Settings, Plus, FolderOpen, X, GitBranch } from "lucide-react";
+import { Layers, Settings, Plus, FolderOpen, X, GitBranch, History, Database } from "lucide-react";
 
 interface SidebarProps {
   agents: Array<{ id: string; name: string; enabled: boolean }>;
@@ -26,6 +26,14 @@ export function Sidebar({ agents, projects, activeSection, onSectionChange, onAd
           <button onClick={() => onSectionChange("all-skills")} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${activeSection === "all-skills" ? "bg-[hsl(30_20%_94%)] text-[hsl(20_10%_20%)]" : "text-[hsl(20_10%_30%)] hover:bg-[hsl(30_20%_94%)]/50"}`}>
             <Layers className="h-4 w-4" />
             Central Skills
+          </button>
+          <button onClick={() => onSectionChange("sources")} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${activeSection === "sources" ? "bg-[hsl(30_20%_94%)] text-[hsl(20_10%_20%)]" : "text-[hsl(20_10%_30%)] hover:bg-[hsl(30_20%_94%)]/50"}`}>
+            <Database className="h-4 w-4" />
+            Sources
+          </button>
+          <button onClick={() => onSectionChange("history")} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${activeSection === "history" ? "bg-[hsl(30_20%_94%)] text-[hsl(20_10%_20%)]" : "text-[hsl(20_10%_30%)] hover:bg-[hsl(30_20%_94%)]/50"}`}>
+            <History className="h-4 w-4" />
+            History
           </button>
         </nav>
       </div>
