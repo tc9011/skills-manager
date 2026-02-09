@@ -137,7 +137,7 @@ export function SettingsPanel() {
       <div>
         <h2 className="text-lg font-semibold">Settings</h2>
         <p className="text-sm text-muted-foreground">
-          Configure Skills Manager preferences
+          Configure Skill Sync preferences
         </p>
       </div>
 

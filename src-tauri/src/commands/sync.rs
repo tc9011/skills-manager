@@ -15,7 +15,7 @@ pub struct SyncConfig {
 
 fn get_config_path() -> Result<PathBuf, String> {
     let home = dirs::home_dir().ok_or("Could not find home directory")?;
-    let config_dir = home.join(".config").join("skills-manager");
+    let config_dir = home.join(".config").join("skill-sync");
     fs::create_dir_all(&config_dir).map_err(|e| format!("Failed to create config dir: {}", e))?;
     Ok(config_dir.join("config.json"))
 }

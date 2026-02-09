@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>Skills Manager</h1>
+  <h1>Skill Sync</h1>
   <p><strong>A desktop app to manage skills for AI coding agents</strong></p>
   <p>
     <a href="#features">Features</a> •
@@ -18,10 +18,10 @@
 
 ---
 
-**Skills Manager** is a cross-platform desktop application for managing "skills" — reusable instruction sets that enhance AI coding agents like [OpenCode](https://github.com/opencode-ai/opencode), Claude Code, and Cursor.
+**Skill Sync** is a cross-platform desktop application for managing "skills" — reusable instruction sets that enhance AI coding agents like [OpenCode](https://github.com/opencode-ai/opencode), Claude Code, and Cursor.
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="Skills Manager Screenshot" width="600">
+  <img src="docs/screenshot.png" alt="Skill Sync Screenshot" width="600">
 </p>
 
 ## Features
@@ -49,8 +49,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/skills-manager.git
-cd skills-manager
+git clone https://github.com/your-username/skill-sync.git
+cd skill-sync
 
 # Install dependencies
 pnpm install
@@ -67,7 +67,7 @@ pnpm dev:tauri
 
 ### Managing Global Skills
 
-1. Launch Skills Manager
+1. Launch Skill Sync
 2. The **Global** tab shows all skills in `~/.agents/skills/`
 3. Click **Add Skill** to install a skill by name
 4. Click any skill card to view details or delete
@@ -99,7 +99,7 @@ pnpm dev:tauri
 ### Project Structure
 
 ```
-skills-manager/
+skill-sync/
 ├── src/                    # React frontend (TypeScript)
 │   ├── components/         # UI components
 │   ├── hooks/              # React hooks

@@ -18,7 +18,7 @@ export function Sidebar({ agents, projects, activeSection, onSectionChange, onAd
   return (
     <div className="w-64 h-full bg-[hsl(30_15%_97%)] border-r border-[hsl(30_10%_90%)] flex flex-col overflow-hidden">
       <div className="p-4 shrink-0">
-        <span className="font-semibold text-[hsl(20_10%_20%)]">Skills Manager</span>
+        <span className="font-semibold text-[hsl(20_10%_20%)]">Skill Sync</span>
       </div>
       
       <div className="px-3 py-2 shrink-0">

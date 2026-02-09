@@ -1,11 +1,11 @@
 {
-  "active_plan": "/Users/theon/Documents/Projects/Demo/skills-manager/.sisyphus/plans/ui-redesign-skills-hub.md",
-  "started_at": "2026-02-06T14:51:03.182Z",
+  "active_plan": "/Users/theon/Documents/Projects/Demo/skills-manager/.sisyphus/plans/install-mode-selection.md",
+  "started_at": "2026-02-06T18:47:26.880Z",
   "session_ids": [
     "ses_3ce0bdc80ffeapDgXR6oxci85x"
   ],
-  "plan_name": "ui-redesign-skills-hub",
-  "status": "in_progress",
-  "tasks_completed": 0,
-  "tasks_total": 5
+  "plan_name": "install-mode-selection",
+  "status": "completed",
+  "tasks_completed": 3,
+  "tasks_total": 3
 }

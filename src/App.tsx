@@ -12,7 +12,9 @@ import { ProjectPanel } from "@/components/project/ProjectPanel";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useSkills } from "@/hooks/useSkills";
 import type { Skill } from "@/types/skill";
+import type { DeleteMode } from "@/components/skills/SkillCard";
 import { Plus, Download } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
 
 interface AgentConfig {
   id: string;
@@ -109,6 +111,15 @@ function App() {
     refetch();
   }, [refetch]);
 
+  const handleDeleteSkill = useCallback(async (path: string, mode: DeleteMode) => {
+    try {
+      await invoke("delete_skill", { path, mode });
+      refetch();
+    } catch (err) {
+      console.error("Failed to delete skill:", err);
+    }
+  }, [refetch]);
+
   const handleAddProject = useCallback(async () => {
     try {
       const selected = await open({
@@ -156,6 +167,13 @@ function App() {
     return "Skills";
   };
 
+  const getDeleteMode = (): DeleteMode => {
+    if (activeSection === "all-skills") return "global";
+    if (activeSection.startsWith("agent-")) return "agent";
+    if (activeSection.startsWith("project-")) return "project";
+    return "global";
+  };
+
   const renderMainContent = () => {
     if (activeSection === "settings") {
       return <SettingsPanel />;
@@ -165,6 +183,8 @@ function App() {
       return (
         <ProjectPanel
           projectPath={projectPath}
+          onDelete={handleDeleteSkill}
+          onSkillClick={handleSkillClick}
         />
       );
     }
@@ -178,6 +198,8 @@ function App() {
         error={error}
         onRetry={refetch}
         onSkillClick={handleSkillClick}
+        onDelete={handleDeleteSkill}
+        deleteMode={getDeleteMode()}
         title={getSkillsListTitle()}
       />
     );
@@ -199,7 +221,7 @@ function App() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="border-b border-[hsl(30_10%_90%)] px-6 py-4 flex items-center justify-between bg-white">
-          <h1 className="text-xl font-semibold">Skills Manager</h1>
+          <h1 className="text-xl font-semibold">Skill Sync</h1>
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -245,6 +267,8 @@ function App() {
         onOpenChange={setDetailDialogOpen}
         onDeleted={handleSkillDeleted}
       />
+
+      <Toaster position="top-right" />
     </div>
   );
 }

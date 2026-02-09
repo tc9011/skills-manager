@@ -1,8 +1,8 @@
-# Skills Manager - Design Document
+# Skill Sync - Design Document
 
 ## Overview
 
-Skills Manager is a cross-platform desktop application that provides a graphical interface for managing "skills" - reusable instruction sets for AI coding agents.
+Skill Sync is a cross-platform desktop application that provides a graphical interface for managing "skills" - reusable instruction sets for AI coding agents.
 
 ### Problem Statement
 
@@ -27,7 +27,7 @@ A unified desktop app that:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      Skills Manager App                      │
+│                      Skill Sync App                          │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐ │
@@ -69,7 +69,7 @@ A unified desktop app that:
 │  ~/.config/opencode/skills/ (OpenCode symlinks)              │
 │  ~/.claude/skills/          (Claude Code symlinks)           │
 │  ~/.cursor/skills/          (Cursor symlinks)                │
-│  ~/.config/skills-manager/  (app config)                     │
+│  ~/.config/skill-sync/      (app config)                     │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -231,7 +231,7 @@ interface SyncConfig {
   - Custom paths for each agent
 - GitHub token for passwordless auth
 
-**Persistence**: `~/.config/skills-manager/settings.json`
+**Persistence**: `~/.config/skill-sync/settings.json`
 
 ### 6. Multi-Project Tabs
 
@@ -377,7 +377,7 @@ All file system and shell access is explicitly declared in `src-tauri/capabiliti
 ## File Manifest
 
 ```
-skills-manager/
+skill-sync/
 ├── README.md                 # Project overview
 ├── AGENTS.md                 # AI agent context
 ├── DESIGN.md                 # This document

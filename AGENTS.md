@@ -1,10 +1,10 @@
-# AGENTS.md - Skills Manager
+# AGENTS.md - Skill Sync
 
 This file provides context for AI coding agents working on this codebase.
 
 ## Project Overview
 
-**Skills Manager** is a Tauri v2 desktop application for managing "skills" - reusable instruction sets for AI coding agents (OpenCode, Claude Code, Cursor).
+**Skill Sync** is a Tauri v2 desktop application for managing "skills" - reusable instruction sets for AI coding agents (OpenCode, Claude Code, Cursor).
 
 ## Tech Stack
 
@@ -115,8 +115,8 @@ description: "Skill description"
 | OpenCode skills | `~/.config/opencode/skills/` |
 | Claude skills | `~/.claude/skills/` |
 | Cursor skills | `~/.cursor/skills/` |
-| App settings | `~/.config/skills-manager/settings.json` |
-| Sync config | `~/.config/skills-manager/config.json` |
+| App settings | `~/.config/skill-sync/settings.json` |
+| Sync config | `~/.config/skill-sync/config.json` |
 
 ## Common Tasks
 
