@@ -8,6 +8,9 @@ use commands::skills::{
     get_skill_content, run_skills_add, run_skills_remove, scan_global_skills, scan_project_skills,
     symlink_skill,
 };
+use commands::sources::{
+    add_source, get_sources, remove_source, resolve_conflict, sync_from_source,
+};
 use commands::sync::{
     check_skills_folder_exists, get_git_remote, get_sync_config, git_add_commit_push,
     git_clone_repo, git_init_repo, git_pull, git_push, git_status, is_git_repo, save_sync_config,
@@ -57,7 +60,12 @@ pub fn run() {
             create_commit,
             get_commit_history,
             get_working_diff,
-            checkout_commit
+            checkout_commit,
+            get_sources,
+            add_source,
+            remove_source,
+            sync_from_source,
+            resolve_conflict
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
