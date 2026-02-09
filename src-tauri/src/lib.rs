@@ -12,6 +12,10 @@ use commands::sync::{
     check_skills_folder_exists, get_git_remote, get_sync_config, git_add_commit_push,
     git_clone_repo, git_init_repo, git_pull, git_push, git_status, is_git_repo, save_sync_config,
 };
+use commands::version::{
+    checkout_commit, create_commit, get_commit_history, get_repo_status, get_working_diff,
+    init_central_repo, is_central_git_repo,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -46,7 +50,14 @@ pub fn run() {
             symlink_skill,
             create_skill_file,
             detect_installed_agents,
-            delete_skill
+            delete_skill,
+            init_central_repo,
+            is_central_git_repo,
+            get_repo_status,
+            create_commit,
+            get_commit_history,
+            get_working_diff,
+            checkout_commit
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
