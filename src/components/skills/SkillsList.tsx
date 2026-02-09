@@ -1,4 +1,4 @@
-import { SkillCard } from "./SkillCard";
+import { SkillCard, type DeleteMode } from "./SkillCard";
 import type { Skill } from "@/types/skill";
 import { Package, Loader2, AlertCircle, RefreshCw, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ interface SkillsListProps {
   error: string | null;
   onRetry: () => void;
   onSkillClick?: (skill: Skill) => void;
+  onDelete?: (path: string, mode: DeleteMode) => void;
+  deleteMode?: DeleteMode;
   title?: string;
 }
 
@@ -18,6 +20,8 @@ export function SkillsList({
   error,
   onRetry,
   onSkillClick,
+  onDelete,
+  deleteMode = "global",
   title = "Skills",
 }: SkillsListProps) {
   if (loading) {
@@ -79,6 +83,8 @@ export function SkillsList({
             key={skill.path}
             skill={skill}
             onClick={() => onSkillClick?.(skill)}
+            onDelete={onDelete}
+            deleteMode={deleteMode}
           />
         ))}
       </div>

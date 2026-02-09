@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { SkillCard } from "@/components/skills/SkillCard";
+import { SkillCard, type DeleteMode } from "@/components/skills/SkillCard";
 import type { Skill } from "@/types/skill";
 import {
   FolderOpen,
@@ -20,11 +20,13 @@ interface ProjectSkill {
 interface ProjectPanelProps {
   projectPath: string;
   onSkillClick?: (skill: Skill) => void;
+  onDelete?: (path: string, mode: DeleteMode) => void;
 }
 
 export function ProjectPanel({
   projectPath,
   onSkillClick,
+  onDelete,
 }: ProjectPanelProps) {
   const [skills, setSkills] = useState<ProjectSkill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +135,8 @@ export function ProjectPanel({
                 key={skill.path}
                 skill={skillData}
                 onClick={() => onSkillClick?.(skillData)}
-                hideAgentBadges
+                onDelete={onDelete}
+                deleteMode="project"
               />
             );
           })}

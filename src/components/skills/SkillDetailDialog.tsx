@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import ReactMarkdown from "react-markdown";
 import {
   Dialog,
   DialogContent,
@@ -10,8 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Loader2,
   AlertCircle,
@@ -20,6 +19,7 @@ import {
   FolderOpen,
   Copy,
 } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
 import type { Skill } from "@/types/skill";
 
 interface SkillDetailDialogProps {
@@ -28,12 +28,6 @@ interface SkillDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   onDeleted: () => void;
 }
-
-const agentColors: Record<string, string> = {
-  opencode: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  claude: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  cursor: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-};
 
 export function SkillDetailDialog({
   skill,
@@ -71,7 +65,9 @@ export function SkillDetailDialog({
       });
       setContent(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const rawError = err instanceof Error ? err.message : String(err);
+      const cleanError = rawError.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+      setError(cleanError);
     } finally {
       setLoading(false);
     }
@@ -86,12 +82,15 @@ export function SkillDetailDialog({
     try {
       await invoke("delete_skill_directory", { path: skill.path });
       setDeleteSuccess(true);
-      setTimeout(() => {
-        onDeleted();
-        onOpenChange(false);
-      }, 1000);
+      onOpenChange(false);
+      toast.success("Skill deleted successfully!");
+      onDeleted();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg);
+      toast.error("Failed to delete skill", {
+        description: errorMsg,
+      });
     } finally {
       setDeleting(false);
     }
@@ -134,7 +133,7 @@ export function SkillDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {skill.name}
@@ -142,41 +141,24 @@ export function SkillDetailDialog({
           <DialogDescription>{skill.description}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 py-2">
-          <span className="text-sm text-muted-foreground">Installed in:</span>
-          {skill.installed_in.length > 0 ? (
-            skill.installed_in.map((agent) => (
-              <Badge
-                key={agent}
-                variant="outline"
-                className={agentColors[agent] || ""}
-              >
-                {agent}
-              </Badge>
-            ))
-          ) : (
-            <Badge variant="outline" className="text-muted-foreground">
-              No agents
-            </Badge>
-          )}
-        </div>
-
-        <ScrollArea className="flex-1 min-h-0 border rounded-md p-4 bg-muted/30">
+        <div className="flex-1 min-h-0 max-h-[50vh] overflow-y-auto border rounded-md bg-muted/30">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-8 px-4">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : error && !content ? (
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              <span>{error}</span>
+            <div className="flex items-start gap-2 text-destructive p-4 overflow-hidden">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span className="break-all overflow-wrap-anywhere min-w-0">{error}</span>
             </div>
           ) : (
-            <pre className="text-sm whitespace-pre-wrap font-mono">
-              {contentWithoutFrontmatter || "No content available"}
-            </pre>
+            <div className="p-4 text-sm prose prose-sm prose-invert max-w-none [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-3 [&_h1]:mt-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-3 [&_h3]:text-base [&_h3]:font-medium [&_h3]:mb-2 [&_h3]:mt-2 [&_p]:mb-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2 [&_li]:mb-1 [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-md [&_pre]:overflow-x-auto [&_pre]:my-2 [&_pre]:font-mono [&_pre]:text-xs [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:font-mono [&_code]:text-xs [&_blockquote]:border-l-4 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-2 [&_a]:text-primary [&_a]:underline [&_hr]:my-4 [&_hr]:border-muted [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-muted [&_th]:p-2 [&_th]:text-left [&_th]:bg-muted/50 [&_td]:border [&_td]:border-muted [&_td]:p-2">
+              <ReactMarkdown>
+                {contentWithoutFrontmatter || "No content available"}
+              </ReactMarkdown>
+            </div>
           )}
-        </ScrollArea>
+        </div>
 
         {deleteSuccess && (
           <div className="flex items-center gap-2 p-3 rounded-md bg-emerald-500/10 text-emerald-400">

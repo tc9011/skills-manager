@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
 
 interface CreateSkillDialogProps {
   open: boolean;
@@ -47,12 +48,17 @@ export function CreateSkillDialog({
       });
 
       setSuccess(true);
+      toast.success("Skill created successfully!");
       setTimeout(() => {
         onSuccess();
         handleClose();
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg);
+      toast.error("Failed to create skill", {
+        description: errorMsg,
+      });
     } finally {
       setLoading(false);
     }
