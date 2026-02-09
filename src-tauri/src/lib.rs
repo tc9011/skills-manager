@@ -5,8 +5,8 @@ use commands::settings::{
 };
 use commands::skills::{
     copy_skill, create_skill_file, delete_skill, delete_skill_directory, detect_installed_agents,
-    get_skill_content, run_skills_add, run_skills_remove, scan_global_skills, scan_project_skills,
-    symlink_skill,
+    get_skill_content, push_to_agent, push_to_all_agents, run_skills_add, run_skills_remove,
+    scan_global_skills, scan_project_skills, symlink_skill,
 };
 use commands::sources::{
     add_source, get_sources, remove_source, resolve_conflict, sync_from_source,
@@ -65,7 +65,9 @@ pub fn run() {
             add_source,
             remove_source,
             sync_from_source,
-            resolve_conflict
+            resolve_conflict,
+            push_to_agent,
+            push_to_all_agents
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

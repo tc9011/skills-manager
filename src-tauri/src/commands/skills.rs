@@ -150,7 +150,12 @@ pub fn scan_global_skills() -> Result<Vec<Skill>, String> {
 #[tauri::command]
 pub fn get_skill_content(path: String) -> Result<String, String> {
     let skill_md = PathBuf::from(&path).join("SKILL.md");
-    fs::read_to_string(&skill_md).map_err(|e| format!("Failed to read skill content: {}", e))
+    fs::read_to_string(&skill_md).map_err(|e| {
+        format!("Failed to read skill content: {}", e)
+            .chars()
+            .filter(|c| !c.is_control() || *c == '\n')
+            .collect()
+    })
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -161,9 +166,23 @@ pub struct CommandResult {
 }
 
 #[tauri::command]
-pub fn run_skills_add(skill_name: String) -> Result<CommandResult, String> {
+pub fn run_skills_add(skill_name: String, agents: Vec<String>) -> Result<CommandResult, String> {
+    let parts: Vec<&str> = skill_name.split_whitespace().collect();
+
+    let mut args = vec!["skills", "add"];
+    args.extend(parts.iter().map(|s| *s));
+    args.push("-g");
+    args.push("-y");
+
+    if !agents.is_empty() {
+        args.push("--agent");
+        for agent in &agents {
+            args.push(agent);
+        }
+    }
+
     let output = Command::new("npx")
-        .args(["skills", "add", &skill_name])
+        .args(&args)
         .output()
         .map_err(|e| format!("Failed to execute npx skills add: {}", e))?;
 
@@ -458,4 +477,158 @@ pub fn symlink_skill(source_path: String, dest_dir: String) -> Result<String, St
     symlink_dir(&src, &dst).map_err(|e| format!("Failed to create symlink: {}", e))?;
 
     Ok(dst.to_string_lossy().to_string())
+}
+
+/// Delete a skill based on mode:
+/// - "global": Delete from ~/.agents/skills/ (full directory deletion)
+/// - "agent": Remove symlink or directory from agent's skill directory
+/// - "project": Remove skill from project directory
+#[tauri::command]
+pub fn delete_skill(path: String, mode: String) -> Result<(), String> {
+    let skill_path = PathBuf::from(&path);
+
+    if !skill_path.exists() && !skill_path.is_symlink() {
+        return Err("Skill does not exist".to_string());
+    }
+
+    match mode.as_str() {
+        "global" => {
+            let home = get_home_dir().ok_or("Could not find home directory")?;
+            let agents_skills = home.join(".agents").join("skills");
+
+            if !skill_path.starts_with(&agents_skills) {
+                return Err("Cannot delete global skills outside of ~/.agents/skills/".to_string());
+            }
+
+            fs::remove_dir_all(&skill_path)
+                .map_err(|e| format!("Failed to delete skill directory: {}", e))
+        }
+        "agent" | "project" => {
+            if skill_path.is_symlink() {
+                fs::remove_file(&skill_path).map_err(|e| format!("Failed to remove symlink: {}", e))
+            } else {
+                fs::remove_dir_all(&skill_path)
+                    .map_err(|e| format!("Failed to delete skill directory: {}", e))
+            }
+        }
+        _ => Err(format!(
+            "Invalid delete mode: {}. Expected 'global', 'agent', or 'project'",
+            mode
+        )),
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PushResult {
+    pub agent_id: String,
+    pub agent_name: String,
+    pub path: String,
+    pub success: bool,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub fn push_to_agent(skill_name: String, agent_id: String) -> Result<PushResult, String> {
+    let home = get_home_dir().ok_or("Could not find home directory")?;
+    let settings = get_app_settings().map_err(|e| format!("Failed to get settings: {}", e))?;
+
+    let agent = settings
+        .agents
+        .iter()
+        .find(|a| a.id == agent_id)
+        .ok_or("Agent not found")?;
+
+    let agent_path = if agent.path.starts_with("~/") {
+        home.join(&agent.path[2..])
+    } else {
+        PathBuf::from(&agent.path)
+    };
+
+    let source = home.join(".agents").join("skills").join(&skill_name);
+    if !source.exists() {
+        return Err("Skill not found in central".to_string());
+    }
+
+    let dest = agent_path.join(&skill_name);
+
+    fs::create_dir_all(&agent_path).map_err(|e| format!("Failed to create agent dir: {}", e))?;
+
+    if dest.exists() || dest.is_symlink() {
+        if dest.is_symlink() {
+            fs::remove_file(&dest)
+                .map_err(|e| format!("Failed to remove existing symlink: {}", e))?;
+        } else {
+            fs::remove_dir_all(&dest)
+                .map_err(|e| format!("Failed to remove existing dir: {}", e))?;
+        }
+    }
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::symlink;
+        symlink(&source, &dest).map_err(|e| format!("Failed to create symlink: {}", e))?;
+    }
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::symlink_dir;
+        symlink_dir(&source, &dest).map_err(|e| format!("Failed to create symlink: {}", e))?;
+    }
+
+    Ok(PushResult {
+        agent_id: agent.id.clone(),
+        agent_name: agent.name.clone(),
+        path: dest.to_string_lossy().to_string(),
+        success: true,
+        error: None,
+    })
+}
+
+#[tauri::command]
+pub fn push_to_all_agents(skill_name: String) -> Result<Vec<PushResult>, String> {
+    let settings = get_app_settings().map_err(|e| format!("Failed to get settings: {}", e))?;
+    let home = get_home_dir().ok_or("Could not find home directory")?;
+
+    let source = home.join(".agents").join("skills").join(&skill_name);
+    if !source.exists() {
+        return Err("Skill not found in central".to_string());
+    }
+
+    let mut results = Vec::new();
+
+    for agent in &settings.agents {
+        if !agent.enabled {
+            continue;
+        }
+
+        let agent_path = if agent.path.starts_with("~/") {
+            home.join(&agent.path[2..])
+        } else {
+            PathBuf::from(&agent.path)
+        };
+
+        if !agent_path.exists() {
+            results.push(PushResult {
+                agent_id: agent.id.clone(),
+                agent_name: agent.name.clone(),
+                path: String::new(),
+                success: false,
+                error: Some("Agent directory does not exist".to_string()),
+            });
+            continue;
+        }
+
+        match push_to_agent(skill_name.clone(), agent.id.clone()) {
+            Ok(result) => results.push(result),
+            Err(e) => results.push(PushResult {
+                agent_id: agent.id.clone(),
+                agent_name: agent.name.clone(),
+                path: String::new(),
+                success: false,
+                error: Some(e),
+            }),
+        }
+    }
+
+    Ok(results)
 }
