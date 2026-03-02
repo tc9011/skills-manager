@@ -1,5 +1,5 @@
 // src/git-ops.ts
-import simpleGit, { type SimpleGit } from 'simple-git';
+import { simpleGit, type SimpleGit } from 'simple-git';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -29,7 +29,7 @@ export async function getRepoRemoteUrl(dir: string): Promise<string | null> {
   try {
     const git = simpleGit(dir);
     const remotes = await git.getRemotes(true);
-    const origin = remotes.find(r => r.name === 'origin');
+    const origin = remotes.find((r) => r.name === 'origin');
     return origin?.refs.fetch ?? null;
   } catch {
     return null;

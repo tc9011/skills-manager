@@ -26,16 +26,16 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
     const globalPath = getAgentGlobalPath(id);
     const dirExists = existsSync(globalPath) || existsSync(dirname(globalPath));
     return {
-      value: id,
+      value: id as string,
       label: `${agentRegistry[id].displayName} (${id})`,
       hint: dirExists ? globalPath : `${globalPath} — directory will be created`,
     };
   });
 
-  const selected = await p.multiselect({
+  const selected = await p.multiselect<string>({
     message: 'Select agents to link skills to:',
     options: agentChoices,
-    initialValues: agents,
+    initialValues: agents as string[],
     required: false,
   });
 
