@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CliError } from '../errors.js';
 import { getLastSelectedAgents } from '../lockfile.js';
+import { readConfig, writeConfig } from '../config.js';
 import { createSkillSymlinks, listCanonicalSkills } from '../linker.js';
 import * as prompts from '@clack/prompts';
 
@@ -24,6 +25,11 @@ vi.mock('../linker.js', () => ({
   createSkillSymlinks: vi.fn(),
   listCanonicalSkills: vi.fn(),
 }));
+vi.mock('../config.js', () => ({
+  readConfig: vi.fn(() => ({})),
+  writeConfig: vi.fn(),
+}));
+
 
 vi.mock('node:fs', async () => {
   const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
@@ -68,5 +74,38 @@ describe('linkCommand', () => {
     expect(getLastSelectedAgents).toHaveBeenCalledOnce();
     expect(createSkillSymlinks).toHaveBeenCalledOnce();
     expect(vi.mocked(createSkillSymlinks).mock.calls[0][2]).toEqual(['my-skill']);
+  });
+
+  it('saves selected agents to config after successful link', async () => {
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as any);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor', 'opencode'] as any);
+    vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+    vi.mocked(createSkillSymlinks).mockResolvedValue([
+      { skill: 'my-skill', status: 'created' },
+    ]);
+
+    const { linkCommand } = await import('./link.js');
+    await linkCommand({});
+
+    expect(writeConfig).toHaveBeenCalledWith({
+      lastLinkedAgents: ['cursor', 'opencode'],
+    });
+  });
+
+  it('uses saved lastLinkedAgents for initial selection', async () => {
+    vi.mocked(readConfig).mockReturnValue({ lastLinkedAgents: ['opencode'] });
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as any);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['opencode'] as any);
+    vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+    vi.mocked(createSkillSymlinks).mockResolvedValue([
+      { skill: 'my-skill', status: 'created' },
+    ]);
+
+    const { linkCommand } = await import('./link.js');
+    await linkCommand({});
+
+    // multiselect should be called with initialValues from saved config
+    const multiselectCall = vi.mocked(prompts.multiselect).mock.calls[0][0] as any;
+    expect(multiselectCall.initialValues).toEqual(['opencode']);
   });
 });

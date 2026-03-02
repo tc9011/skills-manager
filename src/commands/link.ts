@@ -1,7 +1,7 @@
-import { dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { CANONICAL_SKILLS_DIR, SKILL_LOCK_PATH, agentRegistry, getAgentGlobalPath, type AgentId } from '../agents.js';
 import { CliError } from '../errors.js';
+import { readConfig, writeConfig } from '../config.js';
 import { getLastSelectedAgents } from '../lockfile.js';
 import { createSkillSymlinks, listCanonicalSkills } from '../linker.js';
 import * as p from '@clack/prompts';
@@ -41,7 +41,7 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
   const selected = await p.multiselect<string>({
     message: 'Select agents to link skills to:',
     options: agentChoices,
-    initialValues: agentChoices.filter(c => existsSync(getAgentGlobalPath(c.value as AgentId))).map(c => c.value),
+    initialValues: computeInitialValues(agents, agentChoices),
     required: false,
   });
 
@@ -89,7 +89,12 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
     }
   }
 
-  // 5. Summary
+  // 5. Save selection for next time
+  if (linkedAgents.length > 0) {
+    writeConfig({ lastLinkedAgents: selectedAgents });
+  }
+
+  // 6. Summary
   p.note(
     [
       linkedAgents.length > 0 ? `✓ Linked: ${linkedAgents.join(', ')}` : '',
@@ -99,4 +104,22 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
   );
 
   p.outro('Done!');
+}
+
+/**
+ * Determine which agents should be pre-selected in the multiselect.
+ * Priority: saved lastLinkedAgents (if any match current list) > existsSync fallback.
+ */
+function computeInitialValues(agents: AgentId[], choices: { value: string }[]): string[] {
+  const config = readConfig();
+  const saved = config.lastLinkedAgents;
+  if (saved && saved.length > 0) {
+    const agentSet = new Set(agents as string[]);
+    const matching = saved.filter(id => agentSet.has(id));
+    if (matching.length > 0) {
+      return matching;
+    }
+  }
+  // Fallback: pre-select agents whose directories exist locally
+  return choices.filter(c => existsSync(getAgentGlobalPath(c.value as AgentId))).map(c => c.value);
 }
