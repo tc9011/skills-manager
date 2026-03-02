@@ -1,7 +1,7 @@
 // src/git-ops.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { buildRemoteUrl, detectSuspiciousFiles } from './git-ops.js';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { buildRemoteUrl, detectSuspiciousFiles, ensureGitignore } from './git-ops.js';
+import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -55,5 +55,46 @@ describe('detectSuspiciousFiles', () => {
   it('returns empty array for nonexistent directory', () => {
     const result = detectSuspiciousFiles('/nonexistent/path');
     expect(result).toEqual([]);
+  });
+});
+
+describe('ensureGitignore', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'gitignore-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('creates .gitignore with defaults when none exists', async () => {
+    ensureGitignore(tempDir);
+    const content = await readFile(join(tempDir, '.gitignore'), 'utf-8');
+    expect(content).toContain('.DS_Store');
+  });
+
+  it('appends missing patterns to existing .gitignore', async () => {
+    await writeFile(join(tempDir, '.gitignore'), 'node_modules\n');
+    ensureGitignore(tempDir);
+    const content = await readFile(join(tempDir, '.gitignore'), 'utf-8');
+    expect(content).toContain('node_modules');
+    expect(content).toContain('.DS_Store');
+  });
+
+  it('does not duplicate existing patterns', async () => {
+    await writeFile(join(tempDir, '.gitignore'), '.DS_Store\n');
+    ensureGitignore(tempDir);
+    const content = await readFile(join(tempDir, '.gitignore'), 'utf-8');
+    const occurrences = content.split('.DS_Store').length - 1;
+    expect(occurrences).toBe(1);
+  });
+
+  it('handles .gitignore without trailing newline', async () => {
+    await writeFile(join(tempDir, '.gitignore'), 'node_modules');
+    ensureGitignore(tempDir);
+    const content = await readFile(join(tempDir, '.gitignore'), 'utf-8');
+    expect(content).toBe('node_modules\n.DS_Store\n');
   });
 });

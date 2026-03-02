@@ -1,6 +1,6 @@
 // src/git-ops.ts
 import { simpleGit, type SimpleGit } from 'simple-git';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -32,6 +32,27 @@ export function detectSuspiciousFiles(dir: string): string[] {
       .map(e => e.name);
   } catch {
     return [];
+  }
+}
+
+/** Default patterns that should always be in .gitignore for a skills repo. */
+const GITIGNORE_DEFAULTS = ['.DS_Store'];
+
+/**
+ * Ensure a .gitignore exists in the skills repo with sensible defaults.
+ * Appends missing entries without overwriting user content.
+ */
+export function ensureGitignore(dir: string): void {
+  const gitignorePath = join(dir, '.gitignore');
+  let existing = '';
+  if (existsSync(gitignorePath)) {
+    existing = readFileSync(gitignorePath, 'utf-8');
+  }
+  const lines = existing.split('\n').map(l => l.trim());
+  const missing = GITIGNORE_DEFAULTS.filter(p => !lines.includes(p));
+  if (missing.length > 0) {
+    const suffix = existing.endsWith('\n') || existing === '' ? '' : '\n';
+    appendFileSync(gitignorePath, suffix + missing.join('\n') + '\n', 'utf-8');
   }
 }
 
@@ -113,6 +134,9 @@ export async function pushSkills(
   const suspicious = detectSuspiciousFiles(dir);
 
   // Stage all
+  // Ensure .gitignore has sensible defaults (.DS_Store etc.)
+  ensureGitignore(dir);
+
   await git.add('-A');
   // Check if anything to commit
   const status = await git.status();
@@ -182,6 +206,28 @@ export async function pullSkills(
     await git.checkout(branch);
   }
 
+  const doPull = async () => {
+    try {
+      await git.pull('origin', branch, { '--rebase': null });
+    } catch (err) {
+      // If rebase conflicts, abort and give user a clear message
+      const msg = String(err);
+      if (msg.includes('CONFLICT') || msg.includes('could not apply')) {
+        try { await git.rebase(['--abort']); } catch { /* already clean */ }
+        throw new Error(
+          'Rebase conflict detected. Your local skills have diverged from the remote.\n'
+          + 'To fix, cd into ~/.agents/skills/ and resolve manually:\n'
+          + '  cd ~/.agents/skills\n'
+          + '  git fetch origin\n'
+          + `  git rebase origin/${branch}   # resolve conflicts, then git rebase --continue\n`
+          + 'Or force-reset to remote (loses local changes):\n'
+          + `  git reset --hard origin/${branch}`,
+        );
+      }
+      throw err;
+    }
+  };
+
   if (token) {
     const remotes = await git.getRemotes(true);
     const origin = remotes.find((r) => r.name === 'origin');
@@ -189,12 +235,12 @@ export async function pullSkills(
     const authUrl = buildAuthUrl(cleanUrl, token);
     try {
       await git.remote(['set-url', 'origin', authUrl]);
-      await git.pull('origin', branch, { '--rebase': null });
+      await doPull();
     } finally {
       await git.remote(['set-url', 'origin', cleanUrl]);
     }
   } else {
-    await git.pull('origin', branch, { '--rebase': null });
+    await doPull();
   }
 
   return { cloned: false, pulled: true };
