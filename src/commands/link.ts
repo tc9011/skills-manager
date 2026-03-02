@@ -1,4 +1,3 @@
-// src/commands/link.ts
 import { dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { CANONICAL_SKILLS_DIR, SKILL_LOCK_PATH, agentRegistry, getAgentGlobalPath, type AgentId } from '../agents.js';

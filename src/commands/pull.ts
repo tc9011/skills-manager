@@ -1,4 +1,3 @@
-// src/commands/pull.ts
 import { CANONICAL_SKILLS_DIR } from '../agents.js';
 import { getGitHubToken } from '../auth.js';
 import { pullSkills, buildRemoteUrl, getRepoRemoteUrl } from '../git-ops.js';
