@@ -1,6 +1,9 @@
 // src/commands/link.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CliError } from '../errors.js';
+import { getLastSelectedAgents } from '../lockfile.js';
+import { createSkillSymlinks, listCanonicalSkills } from '../linker.js';
+import * as prompts from '@clack/prompts';
 
 // Mock @clack/prompts to avoid interactive prompts in tests
 vi.mock('@clack/prompts', () => ({
@@ -13,9 +16,23 @@ vi.mock('@clack/prompts', () => ({
   isCancel: vi.fn(() => false),
 }));
 
+vi.mock('../lockfile.js', () => ({
+  getLastSelectedAgents: vi.fn(),
+}));
+
+vi.mock('../linker.js', () => ({
+  createSkillSymlinks: vi.fn(),
+  listCanonicalSkills: vi.fn(),
+}));
+
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
+  return { ...actual, existsSync: vi.fn(() => true) };
+});
+
 describe('linkCommand', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it('throws CliError for invalid agent IDs', async () => {
@@ -35,5 +52,21 @@ describe('linkCommand', () => {
   it('module exports a linkCommand function', async () => {
     const mod = await import('./link.js');
     expect(typeof mod.linkCommand).toBe('function');
+  });
+
+  it('links skills to agents on happy path', async () => {
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor'] as any);
+    vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+    vi.mocked(createSkillSymlinks).mockResolvedValue([
+      { skill: 'my-skill', status: 'created' },
+    ]);
+
+    const { linkCommand } = await import('./link.js');
+    await linkCommand({});
+
+    expect(getLastSelectedAgents).toHaveBeenCalledOnce();
+    expect(createSkillSymlinks).toHaveBeenCalledOnce();
+    expect(vi.mocked(createSkillSymlinks).mock.calls[0][2]).toEqual(['my-skill']);
   });
 });

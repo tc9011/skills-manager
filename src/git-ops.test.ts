@@ -1,6 +1,9 @@
 // src/git-ops.test.ts
-import { describe, it, expect } from 'vitest';
-import { buildRemoteUrl } from './git-ops.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { buildRemoteUrl, detectSuspiciousFiles } from './git-ops.js';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 describe('buildRemoteUrl', () => {
   it('builds clean HTTPS URL without credentials', () => {
@@ -13,5 +16,44 @@ describe('buildRemoteUrl', () => {
     const url = buildRemoteUrl('tc9011/my-skills');
     expect(url).not.toContain('@');
     expect(url).not.toContain('ghp_');
+  });
+});
+
+describe('detectSuspiciousFiles', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'git-ops-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('detects .env files', async () => {
+    await writeFile(join(tempDir, '.env'), 'SECRET=123');
+    await writeFile(join(tempDir, 'SKILL.md'), '# Normal file');
+    const result = detectSuspiciousFiles(tempDir);
+    expect(result).toContain('.env');
+    expect(result).not.toContain('SKILL.md');
+  });
+
+  it('detects credential and key files', async () => {
+    await writeFile(join(tempDir, 'credentials.json'), '{}');
+    await writeFile(join(tempDir, 'server.key'), 'key');
+    const result = detectSuspiciousFiles(tempDir);
+    expect(result).toContain('credentials.json');
+    expect(result).toContain('server.key');
+  });
+
+  it('returns empty array for clean directory', async () => {
+    await writeFile(join(tempDir, 'SKILL.md'), '# OK');
+    const result = detectSuspiciousFiles(tempDir);
+    expect(result).toEqual([]);
+  });
+
+  it('returns empty array for nonexistent directory', () => {
+    const result = detectSuspiciousFiles('/nonexistent/path');
+    expect(result).toEqual([]);
   });
 });

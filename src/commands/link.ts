@@ -30,7 +30,7 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
   // 2. Interactive confirmation
   const agentChoices = agents.map(id => {
     const globalPath = getAgentGlobalPath(id);
-    const dirExists = existsSync(globalPath) || existsSync(dirname(globalPath));
+    const dirExists = existsSync(globalPath);
     return {
       value: id as string,
       label: `${agentRegistry[id].displayName} (${id})`,
@@ -61,7 +61,12 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
   const linkedAgents: string[] = [];
   const skippedAgents: { id: string; reason: string }[] = [];
 
-  for (const agentId of selected as AgentId[]) {
+  const validSelected = new Set(Object.keys(agentRegistry));
+  const selectedAgents = (selected as string[]).filter(
+    (id): id is AgentId => validSelected.has(id)
+  );
+
+  for (const agentId of selectedAgents) {
     const globalPath = getAgentGlobalPath(agentId);
     const spinner = p.spinner();
     spinner.start(`Linking ${agentRegistry[agentId].displayName}...`);

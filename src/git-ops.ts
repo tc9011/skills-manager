@@ -1,6 +1,6 @@
 // src/git-ops.ts
 import { simpleGit, type SimpleGit } from 'simple-git';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -8,6 +8,31 @@ import { join } from 'node:path';
  */
 export function buildRemoteUrl(repo: string): string {
   return `https://github.com/${repo}.git`;
+}
+
+/** Patterns that suggest secret or credential files. */
+const SUSPICIOUS_PATTERNS = [
+  /^\.env/,
+  /\.key$/,
+  /\.pem$/,
+  /credentials/i,
+  /secret/i,
+  /token/i,
+];
+
+/**
+ * Scan a directory (non-recursive) for files that look like secrets.
+ * Returns an array of suspicious filenames.
+ */
+export function detectSuspiciousFiles(dir: string): string[] {
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    return entries
+      .filter(e => e.isFile() && SUSPICIOUS_PATTERNS.some(p => p.test(e.name)))
+      .map(e => e.name);
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -23,7 +48,7 @@ function buildAuthUrl(cleanUrl: string, token: string | null): string {
 /**
  * Check if a git repo has uncommitted changes.
  */
-export async function hasUncommittedChanges(dir: string): Promise<boolean> {
+async function hasUncommittedChanges(dir: string): Promise<boolean> {
   const git = simpleGit(dir);
   const status = await git.status();
   return !status.isClean();
@@ -59,17 +84,19 @@ export async function pushSkills(
   dir: string,
   message?: string,
   token?: string | null,
-): Promise<{ committed: boolean; pushed: boolean }> {
+): Promise<{ committed: boolean; pushed: boolean; suspiciousFiles?: string[] }> {
   const git = simpleGit(dir);
   const msg = message ?? `backup: ${new Date().toISOString()}`;
 
+  // Warn about potential secrets before staging
+  const suspicious = detectSuspiciousFiles(dir);
+
   // Stage all
   await git.add('-A');
-
   // Check if anything to commit
   const status = await git.status();
   if (status.isClean()) {
-    return { committed: false, pushed: false };
+    return { committed: false, pushed: false, suspiciousFiles: suspicious.length > 0 ? suspicious : undefined };
   }
 
   // Commit
@@ -81,6 +108,9 @@ export async function pushSkills(
     const remotes = await git.getRemotes(true);
     const origin = remotes.find((r) => r.name === 'origin');
     const cleanUrl = origin?.refs.push ?? origin?.refs.fetch ?? '';
+    if (!cleanUrl) {
+      throw new Error('No origin remote URL configured — cannot push with authentication.');
+    }
     const authUrl = buildAuthUrl(cleanUrl, token);
     try {
       await git.remote(['set-url', 'origin', authUrl]);
@@ -93,7 +123,7 @@ export async function pushSkills(
     await git.push('origin', branch);
   }
 
-  return { committed: true, pushed: true };
+  return { committed: true, pushed: true, suspiciousFiles: suspicious.length > 0 ? suspicious : undefined };
 }
 
 /**

@@ -1,12 +1,61 @@
 // src/commands/push.test.ts
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getGitHubToken } from '../auth.js';
+import { pushSkills, getRepoRemoteUrl } from '../git-ops.js';
 
-// We test the command logic, not the CLI parsing
-// Push command should: check auth → check repo → stage → commit → push
+vi.mock('@clack/prompts', () => ({
+  intro: vi.fn(),
+  cancel: vi.fn(),
+  outro: vi.fn(),
+  note: vi.fn(),
+  spinner: () => ({ start: vi.fn(), stop: vi.fn() }),
+}));
+
+vi.mock('../auth.js', () => ({
+  getGitHubToken: vi.fn(),
+}));
+
+vi.mock('../git-ops.js', () => ({
+  getRepoRemoteUrl: vi.fn(),
+  pushSkills: vi.fn(),
+}));
 
 describe('push command logic', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('module exports a pushCommand function', async () => {
     const mod = await import('./push.js');
     expect(typeof mod.pushCommand).toBe('function');
+  });
+
+  it('pushes skills on happy path', async () => {
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
+    vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/user/repo.git');
+    vi.mocked(pushSkills).mockResolvedValue({ committed: true, pushed: true });
+
+    const { pushCommand } = await import('./push.js');
+    await pushCommand({ message: 'test commit' });
+
+    expect(pushSkills).toHaveBeenCalledOnce();
+    expect(vi.mocked(pushSkills).mock.calls[0][1]).toBe('test commit');
+    expect(vi.mocked(pushSkills).mock.calls[0][2]).toBe('ghp_test_token');
+  });
+
+  it('shows warning for suspicious files', async () => {
+    const prompts = await import('@clack/prompts');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
+    vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/user/repo.git');
+    vi.mocked(pushSkills).mockResolvedValue({
+      committed: true,
+      pushed: true,
+      suspiciousFiles: ['.env', 'credentials.json'],
+    });
+
+    const { pushCommand } = await import('./push.js');
+    await pushCommand({});
+
+    expect(prompts.note).toHaveBeenCalledOnce();
   });
 });

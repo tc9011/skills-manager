@@ -33,6 +33,14 @@ export async function pushCommand(options: { message?: string }): Promise<void> 
         ? 'Skills pushed successfully!'
         : 'No changes to push — already up to date.',
     );
+
+    // Warn about suspicious files that may contain secrets
+    if (result.suspiciousFiles?.length) {
+      p.note(
+        `Suspicious files pushed: ${result.suspiciousFiles.join(', ')}\nConsider adding a .gitignore to ${CANONICAL_SKILLS_DIR}.`,
+        '⚠ Warning',
+      );
+    }
   } catch (err) {
     spinner.stop('Push failed.');
     p.cancel(String(err));
