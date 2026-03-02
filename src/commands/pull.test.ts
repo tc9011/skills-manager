@@ -135,4 +135,32 @@ describe('pullCommand', () => {
     const { pullCommand } = await import('./pull.js');
     await expect(pullCommand({})).rejects.toThrow(CliError);
   });
+
+  it('skips link when pull has no changes (pulled: false, cloned: false)', async () => {
+    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(buildRemoteUrl).mockReturnValue('https://github.com/owner/repo.git');
+    vi.mocked(pullSkills).mockResolvedValue({ cloned: false, pulled: false });
+
+    const linkMod = await import('./link.js');
+    vi.mocked(linkMod.linkCommand).mockResolvedValue(undefined);
+
+    const { pullCommand } = await import('./pull.js');
+    await pullCommand({ repo: 'owner/repo' });
+
+    expect(linkMod.linkCommand).not.toHaveBeenCalled();
+  });
+
+  it('runs link when pull brings new changes (pulled: true)', async () => {
+    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(buildRemoteUrl).mockReturnValue('https://github.com/owner/repo.git');
+    vi.mocked(pullSkills).mockResolvedValue({ cloned: false, pulled: true });
+
+    const linkMod = await import('./link.js');
+    vi.mocked(linkMod.linkCommand).mockResolvedValue(undefined);
+
+    const { pullCommand } = await import('./pull.js');
+    await pullCommand({ repo: 'owner/repo' });
+
+    expect(linkMod.linkCommand).toHaveBeenCalledOnce();
+  });
 });

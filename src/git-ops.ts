@@ -207,6 +207,9 @@ export async function pullSkills(
     await git.checkout(branch);
   }
 
+  // Capture HEAD before pull to detect if anything changed
+  const headBefore = await git.revparse(['HEAD']);
+
   const doPull = async () => {
     try {
       await git.pull('origin', branch, { '--rebase': null });
@@ -245,7 +248,11 @@ export async function pullSkills(
     await doPull();
   }
 
-  return { cloned: false, pulled: true };
+  // Compare HEAD after pull to detect if anything actually changed
+  const headAfter = await git.revparse(['HEAD']);
+  const hasChanges = headBefore !== headAfter;
+
+  return { cloned: false, pulled: hasChanges };
 }
 
 /**

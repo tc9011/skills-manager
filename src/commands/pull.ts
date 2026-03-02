@@ -47,23 +47,28 @@ export async function pullCommand(options: { repo?: string; skipLink?: boolean }
   const spinner = p.spinner();
   spinner.start('Pulling skills from GitHub...');
 
+  let result: { cloned: boolean; pulled: boolean };
   try {
-    const result = await pullSkills(AGENTS_DIR, remoteUrl, token);
-    spinner.stop(
-      result.cloned
-        ? 'Skills cloned successfully!'
-        : 'Skills updated from remote.',
-    );
+    result = await pullSkills(AGENTS_DIR, remoteUrl, token);
+    if (result.cloned) {
+      spinner.stop('Skills cloned successfully!');
+    } else if (result.pulled) {
+      spinner.stop('Skills updated from remote.');
+    } else {
+      spinner.stop('Already up to date.');
+    }
   } catch (err) {
     spinner.stop('Pull failed.');
     p.cancel(String(err));
     throw new CliError(String(err));
   }
 
-  // Auto-run link unless skipped
-  if (!options.skipLink) {
+  // Auto-run link unless skipped or nothing changed
+  if (!options.skipLink && (result.cloned || result.pulled)) {
     await linkCommand({});
-  } else {
+  } else if (options.skipLink) {
     p.outro('Pull complete. Run `skills-manager link` to create agent symlinks.');
+  } else {
+    p.outro('No changes pulled. Skipping link.');
   }
 }
