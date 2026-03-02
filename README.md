@@ -162,6 +162,28 @@ If none found, `push` and `pull` will fail with a clear error message. `link` do
 - Node.js ≥ 20
 - GitHub CLI (`gh`) for authentication (recommended)
 
+### Local Debugging
+
+```bash
+# Run any command directly with tsx (no build step needed)
+npx tsx src/index.ts push
+npx tsx src/index.ts pull --repo owner/my-skills
+npx tsx src/index.ts link
+npx tsx src/index.ts link --agents cursor opencode
+
+# Or use the dev script (same thing)
+npm run dev -- push
+npm run dev -- link -- --agents cursor
+```
+
+To simulate a real global install:
+
+```bash
+npm link                        # register skills-manager globally
+skills-manager push             # use it like an end user
+npm unlink -g skills-manager    # clean up when done
+```
+
 ### Scripts
 
 ```bash
