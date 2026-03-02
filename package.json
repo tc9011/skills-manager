@@ -1,11 +1,34 @@
 {
-  "name": "skills-manager",
+  "name": "@tc9011/skills-manager",
   "version": "0.1.0",
   "description": "Backup and restore AI agent skills to GitHub",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tc9011/skills-manager.git"
+  },
+  "homepage": "https://github.com/tc9011/skills-manager#readme",
+  "bugs": {
+    "url": "https://github.com/tc9011/skills-manager/issues"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "skills",
+    "backup",
+    "restore",
+    "github",
+    "cli",
+    "symlink",
+    "vercel-skills"
+  ],
   "bin": {
     "skills-manager": "./dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
@@ -14,6 +37,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -21,6 +45,9 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
