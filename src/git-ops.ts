@@ -199,12 +199,37 @@ export async function pullSkills(
 
   // Pull latest — use remote's default branch (handles main vs master)
   const git = simpleGit(dir);
+
+  // Helper: temporarily set auth URL, run callback, then restore clean URL
+  const withAuth = async <T>(fn: () => Promise<T>): Promise<T> => {
+    if (!token) return fn();
+    const remotes = await git.getRemotes(true);
+    const origin = remotes.find((r) => r.name === 'origin');
+    const cleanUrl = origin?.refs.fetch ?? remoteUrl;
+    const authUrl = buildAuthUrl(cleanUrl, token);
+    try {
+      await git.remote(['set-url', 'origin', authUrl]);
+      return await fn();
+    } finally {
+      await git.remote(['set-url', 'origin', cleanUrl]);
+    }
+  };
+
+  // Fetch first so remote refs are available for branch detection and checkout
+  await withAuth(() => git.fetch('origin'));
+
   const branch = await getRemoteDefaultBranch(git);
 
-  // If HEAD is detached, checkout the target branch first
+  // If HEAD is detached or no local branch, create/reset local branch from remote
   const localBranch = await git.branchLocal();
   if (!localBranch.current || /^[0-9a-f]{7,40}$/.test(localBranch.current)) {
-    await git.checkout(branch);
+    try {
+      // -B creates the branch if missing, or resets it if it exists
+      await git.checkout(['-B', branch, `origin/${branch}`]);
+    } catch {
+      // If origin/branch doesn't exist either, try plain checkout as last resort
+      await git.checkout(branch);
+    }
   }
 
   // Capture HEAD before pull to detect if anything changed
@@ -233,20 +258,7 @@ export async function pullSkills(
     }
   };
 
-  if (token) {
-    const remotes = await git.getRemotes(true);
-    const origin = remotes.find((r) => r.name === 'origin');
-    const cleanUrl = origin?.refs.fetch ?? remoteUrl;
-    const authUrl = buildAuthUrl(cleanUrl, token);
-    try {
-      await git.remote(['set-url', 'origin', authUrl]);
-      await doPull();
-    } finally {
-      await git.remote(['set-url', 'origin', cleanUrl]);
-    }
-  } else {
-    await doPull();
-  }
+  await withAuth(doPull);
 
   // Compare HEAD after pull to detect if anything actually changed
   const headAfter = await git.revparse(['HEAD']);
@@ -254,7 +266,6 @@ export async function pullSkills(
 
   return { cloned: false, pulled: hasChanges };
 }
-
 /**
  * Ensure a directory is a git repository. If not, runs `git init`.
  * Creates the directory if it doesn't exist.

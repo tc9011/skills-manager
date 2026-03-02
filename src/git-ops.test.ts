@@ -26,6 +26,7 @@ const { mockGit, mockExecSync } = vi.hoisted(() => {
     rebase: vi.fn(),
     init: vi.fn(),
     revparse: vi.fn(),
+    fetch: vi.fn(),
   };
   const mockExecSync = vi.fn();
   return { mockGit, mockExecSync };
@@ -306,6 +307,7 @@ describe('pullSkills', () => {
     const { mkdir } = await import('node:fs/promises');
     await mkdir(join(tempDir, '.git'));
 
+    mockGit.fetch.mockResolvedValue(undefined);
     mockGit.raw.mockResolvedValue('HEAD branch: main\n');
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
     // Simulate HEAD changed after pull
@@ -314,14 +316,16 @@ describe('pullSkills', () => {
 
     const result = await pullSkills(tempDir, 'https://github.com/user/repo.git');
 
+    expect(mockGit.fetch).toHaveBeenCalledWith('origin');
     expect(mockGit.pull).toHaveBeenCalledWith('origin', 'main', { '--rebase': null });
     expect(result).toEqual({ cloned: false, pulled: true });
   });
 
-  it('checks out target branch when HEAD is detached', async () => {
+  it('checks out target branch with -B when HEAD is detached', async () => {
     const { mkdir } = await import('node:fs/promises');
     await mkdir(join(tempDir, '.git'));
 
+    mockGit.fetch.mockResolvedValue(undefined);
     mockGit.raw.mockResolvedValue('HEAD branch: main\n');
     // Simulate detached HEAD (current is a commit hash)
     mockGit.branchLocal.mockResolvedValue({ current: 'a1b2c3d' });
@@ -332,13 +336,57 @@ describe('pullSkills', () => {
 
     await pullSkills(tempDir, 'https://github.com/user/repo.git');
 
-    expect(mockGit.checkout).toHaveBeenCalledWith('main');
+    expect(mockGit.checkout).toHaveBeenCalledWith(['-B', 'main', 'origin/main']);
+  });
+
+  it('falls back to plain checkout when origin/branch does not exist', async () => {
+    const { mkdir } = await import('node:fs/promises');
+    await mkdir(join(tempDir, '.git'));
+
+    mockGit.fetch.mockResolvedValue(undefined);
+    mockGit.raw.mockResolvedValue('HEAD branch: main\n');
+    mockGit.branchLocal.mockResolvedValue({ current: '' });
+    // First checkout (-B) fails, second (plain) succeeds
+    mockGit.checkout
+      .mockRejectedValueOnce(new Error('fatal: not a valid object name: origin/main'))
+      .mockResolvedValueOnce(undefined);
+    mockGit.revparse.mockResolvedValueOnce('aaa111').mockResolvedValueOnce('bbb222');
+    mockGit.pull.mockResolvedValue(undefined);
+
+    await pullSkills(tempDir, 'https://github.com/user/repo.git');
+
+    expect(mockGit.checkout).toHaveBeenNthCalledWith(1, ['-B', 'main', 'origin/main']);
+    expect(mockGit.checkout).toHaveBeenNthCalledWith(2, 'main');
+  });
+
+  it('fetches with auth URL when token is provided', async () => {
+    const { mkdir } = await import('node:fs/promises');
+    await mkdir(join(tempDir, '.git'));
+
+    mockGit.fetch.mockResolvedValue(undefined);
+    mockGit.getRemotes.mockResolvedValue([
+      { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
+    ]);
+    mockGit.remote.mockResolvedValue(undefined);
+    mockGit.raw.mockResolvedValue('HEAD branch: master\n');
+    mockGit.branchLocal.mockResolvedValue({ current: 'master' });
+    mockGit.revparse.mockResolvedValueOnce('aaa111').mockResolvedValueOnce('bbb222');
+    mockGit.pull.mockResolvedValue(undefined);
+
+    await pullSkills(tempDir, 'https://github.com/user/repo.git', 'ghp_token789');
+
+    // Auth URL set before fetch, restored after fetch, then set again before pull, restored after pull
+    expect(mockGit.remote).toHaveBeenCalledWith(['set-url', 'origin', 'https://x-access-token:ghp_token789@github.com/user/repo.git']);
+    expect(mockGit.remote).toHaveBeenCalledWith(['set-url', 'origin', 'https://github.com/user/repo.git']);
+    expect(mockGit.fetch).toHaveBeenCalledWith('origin');
+    expect(mockGit.pull).toHaveBeenCalledWith('origin', 'master', { '--rebase': null });
   });
 
   it('returns pulled: false when pull brings no changes (HEAD unchanged)', async () => {
     const { mkdir } = await import('node:fs/promises');
     await mkdir(join(tempDir, '.git'));
 
+    mockGit.fetch.mockResolvedValue(undefined);
     mockGit.raw.mockResolvedValue('HEAD branch: main\n');
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
     // Simulate HEAD unchanged: revparse returns same hash before and after pull
@@ -355,6 +403,7 @@ describe('pullSkills', () => {
     const { mkdir } = await import('node:fs/promises');
     await mkdir(join(tempDir, '.git'));
 
+    mockGit.fetch.mockResolvedValue(undefined);
     mockGit.raw.mockResolvedValue('HEAD branch: main\n');
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
     // Simulate HEAD changed: revparse returns different hash before and after pull
