@@ -1,4 +1,4 @@
-import { CANONICAL_SKILLS_DIR } from '../agents.js';
+import { AGENTS_DIR } from '../agents.js';
 import { ensureGitHubToken } from '../auth.js';
 import { CliError } from '../errors.js';
 import { pullSkills, buildRemoteUrl, getRepoRemoteUrl } from '../git-ops.js';
@@ -15,7 +15,7 @@ export async function pullCommand(options: { repo?: string; skipLink?: boolean }
   if (options.repo) {
     remoteUrl = buildRemoteUrl(options.repo);
   } else {
-    const existing = await getRepoRemoteUrl(CANONICAL_SKILLS_DIR);
+    const existing = await getRepoRemoteUrl(AGENTS_DIR);
     if (!existing) {
       p.cancel('No repo specified and no existing remote. Use --repo owner/name.');
       throw new CliError('No repo specified and no existing remote.');
@@ -28,7 +28,7 @@ export async function pullCommand(options: { repo?: string; skipLink?: boolean }
   spinner.start('Pulling skills from GitHub...');
 
   try {
-    const result = await pullSkills(CANONICAL_SKILLS_DIR, remoteUrl, token);
+    const result = await pullSkills(AGENTS_DIR, remoteUrl, token);
     spinner.stop(
       result.cloned
         ? 'Skills cloned successfully!'

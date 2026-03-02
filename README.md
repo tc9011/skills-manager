@@ -6,11 +6,11 @@ A CLI companion to [vercel-labs/skills](https://github.com/vercel-labs/skills) t
 
 `vercel-labs/skills` installs and manages skills, but it doesn't handle:
 
-- **Backup** — pushing your `~/.agents/skills/` to a remote GitHub repo
+- **Backup** — pushing your `~/.agents/` directory (skills + lock file) to a remote GitHub repo
 - **Restore** — cloning skills back on a new machine
 - **Agent linking** — reading `.skill-lock.json` and creating symlinks to every agent you use
 
-`skills-manager` fills that gap. It reads the lock file that `vercel-labs/skills` owns (never modifies it) and creates relative symlinks from each agent's skills directory back to the canonical `~/.agents/skills/` source.
+`skills-manager` fills that gap. It backs up the entire `~/.agents/` directory (including `.skill-lock.json` and `skills/`), reads the lock file that `vercel-labs/skills` owns (never modifies it), and creates relative symlinks from each agent's skills directory back to the canonical `~/.agents/skills/` source.
 
 ## Quick Start
 
@@ -29,7 +29,7 @@ skills-manager link
 
 ### `push`
 
-Commits and pushes the contents of `~/.agents/skills/` to its configured GitHub remote.
+Commits and pushes the contents of `~/.agents/` (skills + `.skill-lock.json`) to its configured GitHub remote.
 
 ```bash
 skills-manager push
@@ -40,11 +40,11 @@ skills-manager push -m "add new debugging skill"
 |--------|-------------|
 | `-m, --message <msg>` | Custom commit message (default: auto-generated) |
 
-**Prerequisites**: The `~/.agents/skills/` directory must be a git repository with a remote configured.
+**Prerequisites**: The `~/.agents/` directory must be a git repository with a remote configured.
 
 ### `pull`
 
-Clones or pulls skills from GitHub into `~/.agents/skills/`, then automatically runs `link`.
+Clones or pulls the `~/.agents/` directory from GitHub, then automatically runs `link`.
 
 ```bash
 skills-manager pull --repo tc9011/my-skills

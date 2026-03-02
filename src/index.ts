@@ -14,13 +14,13 @@ program
 
 program
   .command('push')
-  .description('Push skills from ~/.agents/skills/ to GitHub')
+  .description('Push ~/.agents/ (skills + lock file) to GitHub')
   .option('-m, --message <message>', 'Commit message')
   .action(pushCommand);
 
 program
   .command('pull')
-  .description('Pull skills from GitHub to ~/.agents/skills/')
+  .description('Pull ~/.agents/ (skills + lock file) from GitHub')
   .option('-r, --repo <repo>', 'GitHub repo (owner/name)')
   .option('--skip-link', 'Skip automatic agent linking after pull')
   .action(pullCommand);

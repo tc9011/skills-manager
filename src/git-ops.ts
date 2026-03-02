@@ -216,8 +216,8 @@ export async function pullSkills(
         try { await git.rebase(['--abort']); } catch { /* already clean */ }
         throw new Error(
           'Rebase conflict detected. Your local skills have diverged from the remote.\n'
-          + 'To fix, cd into ~/.agents/skills/ and resolve manually:\n'
-          + '  cd ~/.agents/skills\n'
+          + 'To fix, cd into ~/.agents/ and resolve manually:\n'
+          + '  cd ~/.agents\n'
           + '  git fetch origin\n'
           + `  git rebase origin/${branch}   # resolve conflicts, then git rebase --continue\n`
           + 'Or force-reset to remote (loses local changes):\n'

@@ -94,5 +94,8 @@ export function getAgentGlobalPath(agentId: AgentId): string {
 /** Canonical skills directory — the source of truth. */
 export const CANONICAL_SKILLS_DIR = join(homedir(), '.agents', 'skills');
 
+/** The git-managed agents directory — root of the backup repo. */
+export const AGENTS_DIR = join(homedir(), '.agents');
+
 /** Lock file path — READ ONLY, owned by vercel-labs/skills. */
 export const SKILL_LOCK_PATH = join(homedir(), '.agents', '.skill-lock.json');
