@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/tc9011/skills-manager/compare/v0.2.1...v0.3.0) (2026-03-02)
+
+
+### Features
+
+* add project-level link with copy/symlink mode ([bcc45a6](https://github.com/tc9011/skills-manager/commit/bcc45a662b5898db5e22055ab796786134e2a969))
+
 ## [0.2.1](https://github.com/tc9011/skills-manager/compare/v0.2.0...v0.2.1) (2026-03-02)
 
 
