@@ -41,7 +41,7 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
   const selected = await p.multiselect<string>({
     message: 'Select agents to link skills to:',
     options: agentChoices,
-    initialValues: agents as string[],
+    initialValues: agentChoices.filter(c => existsSync(getAgentGlobalPath(c.value as AgentId))).map(c => c.value),
     required: false,
   });
 
