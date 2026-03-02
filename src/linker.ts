@@ -1,11 +1,11 @@
 // src/linker.ts
-import { symlink, lstat, readdir, mkdir, readlink } from 'node:fs/promises';
+import { symlink, lstat, readdir, mkdir, readlink, unlink } from 'node:fs/promises';
 import { join, relative, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 
 export interface LinkResult {
   skill: string;
-  status: 'created' | 'exists' | 'skipped';
+  status: 'created' | 'exists' | 'recreated' | 'skipped';
   reason?: string;
 }
 
@@ -49,7 +49,18 @@ export async function createSkillSymlinks(
     try {
       const stats = await lstat(linkPath);
       if (stats.isSymbolicLink()) {
-        results.push({ skill, status: 'exists' });
+        // Verify the symlink points to the correct target
+        const expectedTarget = computeRelativeSymlinkTarget(linkPath, canonicalPath);
+        const actualTarget = await readlink(linkPath);
+        if (actualTarget === expectedTarget) {
+          results.push({ skill, status: 'exists' });
+          continue;
+        }
+        // Stale symlink — remove and recreate
+        await unlink(linkPath);
+        const target = computeRelativeSymlinkTarget(linkPath, canonicalPath);
+        await symlink(target, linkPath);
+        results.push({ skill, status: 'recreated', reason: `was pointing to ${actualTarget}` });
         continue;
       }
       // Exists but not a symlink — skip to avoid overwriting

@@ -1,6 +1,6 @@
 // src/linker.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm, mkdir, writeFile, readlink } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir, writeFile, readlink, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createSkillSymlinks, computeRelativeSymlinkTarget, type LinkResult } from './linker.js';
@@ -89,5 +89,28 @@ describe('createSkillSymlinks', () => {
     const results = await createSkillSymlinks(canonical, agentDir, ['my-skill']);
 
     expect(results[0].status).toBe('exists');
+  });
+
+  it('recreates stale symlinks pointing to wrong target', async () => {
+    const canonical = join(tempDir, '.agents', 'skills');
+    await mkdir(join(canonical, 'my-skill'), { recursive: true });
+    await writeFile(join(canonical, 'my-skill', 'SKILL.md'), '# My Skill');
+    const agentDir = join(tempDir, '.config', 'opencode', 'skills');
+    await mkdir(agentDir, { recursive: true });
+
+    // Create a symlink pointing to the wrong place
+    const linkPath = join(agentDir, 'my-skill');
+    await symlink('/some/wrong/target', linkPath);
+
+    // Should recreate it
+    const results = await createSkillSymlinks(canonical, agentDir, ['my-skill']);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].status).toBe('recreated');
+    expect(results[0].reason).toContain('/some/wrong/target');
+
+    // Verify new symlink is correct
+    const newTarget = await readlink(linkPath);
+    expect(newTarget).toContain('.agents/skills/my-skill');
   });
 });
