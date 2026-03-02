@@ -189,12 +189,12 @@ export async function pullSkills(
     const authUrl = buildAuthUrl(cleanUrl, token);
     try {
       await git.remote(['set-url', 'origin', authUrl]);
-      await git.pull('origin', branch);
+      await git.pull('origin', branch, { '--rebase': null });
     } finally {
       await git.remote(['set-url', 'origin', cleanUrl]);
     }
   } else {
-    await git.pull('origin', branch);
+    await git.pull('origin', branch, { '--rebase': null });
   }
 
   return { cloned: false, pulled: true };
