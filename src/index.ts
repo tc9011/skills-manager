@@ -29,6 +29,7 @@ program
   .command('link')
   .description('Create symlinks from canonical skills to agent directories')
   .option('-a, --agents <agents...>', 'Agent IDs to link (default: from .skill-lock.json)')
+  .option('-p, --project', 'Link skills to project directory (CWD)')
   .action(linkCommand);
 
 

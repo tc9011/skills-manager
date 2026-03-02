@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CliError } from '../errors.js';
 import { getLastSelectedAgents } from '../lockfile.js';
 import { readConfig, writeConfig } from '../config.js';
-import { createSkillSymlinks, listCanonicalSkills } from '../linker.js';
+import { createSkillSymlinks, listCanonicalSkills, copySkills, createProjectSymlinks } from '../linker.js';
 import * as prompts from '@clack/prompts';
 
 // Mock @clack/prompts to avoid interactive prompts in tests
@@ -14,6 +14,7 @@ vi.mock('@clack/prompts', () => ({
   note: vi.fn(),
   spinner: () => ({ start: vi.fn(), stop: vi.fn() }),
   multiselect: vi.fn(),
+  select: vi.fn(),
   isCancel: vi.fn(() => false),
 }));
 
@@ -24,6 +25,8 @@ vi.mock('../lockfile.js', () => ({
 vi.mock('../linker.js', () => ({
   createSkillSymlinks: vi.fn(),
   listCanonicalSkills: vi.fn(),
+  copySkills: vi.fn(),
+  createProjectSymlinks: vi.fn(),
 }));
 vi.mock('../config.js', () => ({
   readConfig: vi.fn(() => ({})),
@@ -143,5 +146,97 @@ describe('linkCommand', () => {
     // multiselect should be called with initialValues from saved config
     const multiselectCall = vi.mocked(prompts.multiselect).mock.calls[0][0] as any;
     expect(multiselectCall.initialValues).toEqual(['opencode']);
+  });
+
+  describe('project mode', () => {
+    it('calls copySkills when project mode with copy (default)', async () => {
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(prompts.multiselect).mockResolvedValue(['cursor'] as any);
+      vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+      vi.mocked((prompts as any).select).mockResolvedValue('copy');
+      vi.mocked(copySkills).mockResolvedValue([
+        { skill: 'my-skill', status: 'copied' },
+      ]);
+
+      const { linkCommand } = await import('./link.js');
+      await linkCommand({ agents: ['cursor'], project: true });
+
+      expect(copySkills).toHaveBeenCalledOnce();
+      expect(createProjectSymlinks).not.toHaveBeenCalled();
+      expect(createSkillSymlinks).not.toHaveBeenCalled();
+      // Verify targetDir is CWD-relative using the agent's projectPath
+      const callArgs = vi.mocked(copySkills).mock.calls[0];
+      expect(callArgs[2]).toEqual(['my-skill']);
+    });
+
+    it('calls createProjectSymlinks when project mode with symlink', async () => {
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(prompts.multiselect).mockResolvedValue(['cursor'] as any);
+      vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+      vi.mocked((prompts as any).select).mockResolvedValue('symlink');
+      vi.mocked(createProjectSymlinks).mockResolvedValue([
+        { skill: 'my-skill', status: 'created' },
+      ]);
+
+      const { linkCommand } = await import('./link.js');
+      await linkCommand({ agents: ['cursor'], project: true });
+
+      expect(createProjectSymlinks).toHaveBeenCalledOnce();
+      expect(copySkills).not.toHaveBeenCalled();
+      expect(createSkillSymlinks).not.toHaveBeenCalled();
+    });
+
+    it('deduplicates universal agents sharing same projectPath', async () => {
+      // cursor and opencode are both universal → share '.agents/skills' projectPath
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as any);
+      vi.mocked(prompts.multiselect).mockResolvedValue(['cursor', 'opencode'] as any);
+      vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+      vi.mocked((prompts as any).select).mockResolvedValue('copy');
+      vi.mocked(copySkills).mockResolvedValue([
+        { skill: 'my-skill', status: 'copied' },
+      ]);
+
+      const { linkCommand } = await import('./link.js');
+      await linkCommand({ agents: ['cursor', 'opencode'], project: true });
+
+      // Both share .agents/skills, so only ONE copySkills call
+      expect(copySkills).toHaveBeenCalledOnce();
+    });
+
+    it('returns gracefully when user cancels mode prompt', async () => {
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(prompts.multiselect).mockResolvedValue(['cursor'] as any);
+      vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+      // isCancel returns true only for the select result
+      const selectResult = Symbol('cancel');
+      vi.mocked((prompts as any).select).mockResolvedValue(selectResult);
+      vi.mocked(prompts.isCancel)
+        .mockReturnValueOnce(false)   // for multiselect check
+        .mockReturnValueOnce(true);    // for select check
+
+      const { linkCommand } = await import('./link.js');
+      await linkCommand({ agents: ['cursor'], project: true });
+
+      expect(prompts.cancel).toHaveBeenCalledWith('Cancelled.');
+      expect(copySkills).not.toHaveBeenCalled();
+      expect(createProjectSymlinks).not.toHaveBeenCalled();
+    });
+
+    it('saves config after successful project link', async () => {
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(prompts.multiselect).mockResolvedValue(['cursor'] as any);
+      vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+      vi.mocked((prompts as any).select).mockResolvedValue('copy');
+      vi.mocked(copySkills).mockResolvedValue([
+        { skill: 'my-skill', status: 'copied' },
+      ]);
+
+      const { linkCommand } = await import('./link.js');
+      await linkCommand({ agents: ['cursor'], project: true });
+
+      expect(writeConfig).toHaveBeenCalledWith({
+        lastLinkedAgents: ['cursor'],
+      });
+    });
   });
 });

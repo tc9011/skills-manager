@@ -1,12 +1,13 @@
 import { existsSync } from 'node:fs';
-import { CANONICAL_SKILLS_DIR, SKILL_LOCK_PATH, agentRegistry, getAgentGlobalPath, type AgentId } from '../agents.js';
+import { join } from 'node:path';
+import { CANONICAL_SKILLS_DIR, SKILL_LOCK_PATH, agentRegistry, getAgentGlobalPath, groupAgentsByProjectPath, type AgentId } from '../agents.js';
 import { CliError } from '../errors.js';
 import { readConfig, writeConfig } from '../config.js';
 import { getLastSelectedAgents } from '../lockfile.js';
-import { createSkillSymlinks, listCanonicalSkills } from '../linker.js';
+import { createSkillSymlinks, listCanonicalSkills, copySkills, createProjectSymlinks } from '../linker.js';
 import * as p from '@clack/prompts';
 
-export async function linkCommand(options: { agents?: string[] }): Promise<void> {
+export async function linkCommand(options: { agents?: string[]; project?: boolean }): Promise<void> {
   p.intro('skills-manager link');
 
   // 1. Read lock file for lastSelectedAgents
@@ -57,7 +58,7 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
     throw new CliError(`No skills found in ${CANONICAL_SKILLS_DIR}.`);
   }
 
-  // 4. Create symlinks for each agent
+  // 4. Link/copy skills
   const linkedAgents: string[] = [];
   const skippedAgents: { id: string; reason: string }[] = [];
 
@@ -66,26 +67,82 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
     (id): id is AgentId => validSelected.has(id)
   );
 
-  for (const agentId of selectedAgents) {
-    const globalPath = getAgentGlobalPath(agentId);
-    const spinner = p.spinner();
-    spinner.start(`Linking ${agentRegistry[agentId].displayName}...`);
+  if (options.project) {
+    // Project mode: prompt for copy vs symlink, group by projectPath
+    const mode = await p.select({
+      message: 'How should skills be added to the project?',
+      options: [
+        { value: 'copy', label: 'Copy files', hint: 'recommended — independent copies' },
+        { value: 'symlink', label: 'Create symlinks', hint: 'links to ~/.agents/skills' },
+      ],
+      initialValue: 'copy',
+    });
 
-    try {
-      const results = await createSkillSymlinks(CANONICAL_SKILLS_DIR, globalPath, skills);
-      const created = results.filter(r => r.status === 'created').length;
-      const recreated = results.filter(r => r.status === 'recreated').length;
-      const existed = results.filter(r => r.status === 'exists').length;
-      const skipped = results.filter(r => r.status === 'skipped').length;
+    if (p.isCancel(mode)) {
+      p.cancel('Cancelled.');
+      return;
+    }
 
-      const parts = [`${created} linked`];
-      if (recreated > 0) parts.push(`${recreated} recreated`);
-      parts.push(`${existed} existing`, `${skipped} skipped`);
-      spinner.stop(`${agentRegistry[agentId].displayName}: ${parts.join(', ')}`);
-      linkedAgents.push(agentId);
-    } catch (err) {
-      spinner.stop(`${agentRegistry[agentId].displayName}: failed`);
-      skippedAgents.push({ id: agentId, reason: String(err) });
+    const groups = groupAgentsByProjectPath(selectedAgents);
+
+    for (const [projectPath, groupAgentIds] of groups) {
+      const targetDir = join(process.cwd(), projectPath);
+      const agentNames = groupAgentIds.map(id => agentRegistry[id].displayName).join(', ');
+      const spinner = p.spinner();
+      spinner.start(`${mode === 'copy' ? 'Copying' : 'Linking'} to ${projectPath} (${agentNames})...`);
+
+      try {
+        if (mode === 'copy') {
+          const results = await copySkills(CANONICAL_SKILLS_DIR, targetDir, skills);
+          const copied = results.filter(r => r.status === 'copied').length;
+          const overwritten = results.filter(r => r.status === 'overwritten').length;
+          const skipped = results.filter(r => r.status === 'skipped').length;
+          const parts = [`${copied} copied`];
+          if (overwritten > 0) parts.push(`${overwritten} overwritten`);
+          parts.push(`${skipped} skipped`);
+          spinner.stop(`${projectPath}: ${parts.join(', ')}`);
+        } else {
+          const results = await createProjectSymlinks(CANONICAL_SKILLS_DIR, targetDir, skills);
+          const created = results.filter(r => r.status === 'created').length;
+          const recreated = results.filter(r => r.status === 'recreated').length;
+          const existed = results.filter(r => r.status === 'exists').length;
+          const skipped = results.filter(r => r.status === 'skipped').length;
+          const parts = [`${created} linked`];
+          if (recreated > 0) parts.push(`${recreated} recreated`);
+          parts.push(`${existed} existing`, `${skipped} skipped`);
+          spinner.stop(`${projectPath}: ${parts.join(', ')}`);
+        }
+        linkedAgents.push(...groupAgentIds);
+      } catch (err) {
+        spinner.stop(`${projectPath}: failed`);
+        for (const id of groupAgentIds) {
+          skippedAgents.push({ id, reason: String(err) });
+        }
+      }
+    }
+  } else {
+    // Global mode: create symlinks for each agent individually
+    for (const agentId of selectedAgents) {
+      const globalPath = getAgentGlobalPath(agentId);
+      const spinner = p.spinner();
+      spinner.start(`Linking ${agentRegistry[agentId].displayName}...`);
+
+      try {
+        const results = await createSkillSymlinks(CANONICAL_SKILLS_DIR, globalPath, skills);
+        const created = results.filter(r => r.status === 'created').length;
+        const recreated = results.filter(r => r.status === 'recreated').length;
+        const existed = results.filter(r => r.status === 'exists').length;
+        const skipped = results.filter(r => r.status === 'skipped').length;
+
+        const parts = [`${created} linked`];
+        if (recreated > 0) parts.push(`${recreated} recreated`);
+        parts.push(`${existed} existing`, `${skipped} skipped`);
+        spinner.stop(`${agentRegistry[agentId].displayName}: ${parts.join(', ')}`);
+        linkedAgents.push(agentId);
+      } catch (err) {
+        spinner.stop(`${agentRegistry[agentId].displayName}: failed`);
+        skippedAgents.push({ id: agentId, reason: String(err) });
+      }
     }
   }
 

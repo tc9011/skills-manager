@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { agentRegistry, getAgentGlobalPath, AGENTS_DIR, CANONICAL_SKILLS_DIR, SKILL_LOCK_PATH, type AgentId } from './agents.js';
+import { agentRegistry, getAgentGlobalPath, getAgentProjectPath, groupAgentsByProjectPath, AGENTS_DIR, CANONICAL_SKILLS_DIR, SKILL_LOCK_PATH, type AgentId } from './agents.js';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -119,5 +119,68 @@ describe('agent constants', () => {
 
   it('SKILL_LOCK_PATH resolves to ~/.agents/.skill-lock.json', () => {
     expect(SKILL_LOCK_PATH).toBe(join(homedir(), '.agents', '.skill-lock.json'));
+  });
+});
+
+describe('getAgentProjectPath', () => {
+  it('resolves cursor (universal) project path', () => {
+    const path = getAgentProjectPath('cursor', '/my/project');
+    expect(path).toBe('/my/project/.agents/skills');
+  });
+
+  it('resolves claude-code (non-universal) project path', () => {
+    const path = getAgentProjectPath('claude-code', '/my/project');
+    expect(path).toBe('/my/project/.claude/skills');
+  });
+
+  it('resolves antigravity project path', () => {
+    const path = getAgentProjectPath('antigravity', '/tmp/foo');
+    expect(path).toBe('/tmp/foo/.agent/skills');
+  });
+
+  it('resolves opencode (universal) project path', () => {
+    const path = getAgentProjectPath('opencode', '/my/project');
+    expect(path).toBe('/my/project/.agents/skills');
+  });
+
+  it('resolves windsurf (non-universal) project path', () => {
+    const path = getAgentProjectPath('windsurf', '/home/user/repo');
+    expect(path).toBe('/home/user/repo/.windsurf/skills');
+  });
+});
+
+describe('groupAgentsByProjectPath', () => {
+  it('groups mixed universal and non-universal agents correctly', () => {
+    const groups = groupAgentsByProjectPath(['cursor', 'opencode', 'claude-code', 'amp']);
+    expect(groups).toBeInstanceOf(Map);
+    expect(groups.size).toBe(2);
+    expect(groups.get('.agents/skills')).toEqual(expect.arrayContaining(['cursor', 'opencode', 'amp']));
+    expect(groups.get('.agents/skills')).toHaveLength(3);
+    expect(groups.get('.claude/skills')).toEqual(['claude-code']);
+  });
+
+  it('groups only universal agents into single group', () => {
+    const groups = groupAgentsByProjectPath(['cursor', 'opencode', 'amp', 'cline', 'codex']);
+    expect(groups.size).toBe(1);
+    expect(groups.get('.agents/skills')).toHaveLength(5);
+  });
+
+  it('returns empty Map for no agents', () => {
+    const groups = groupAgentsByProjectPath([]);
+    expect(groups).toBeInstanceOf(Map);
+    expect(groups.size).toBe(0);
+  });
+
+  it('returns single group for single agent', () => {
+    const groups = groupAgentsByProjectPath(['cursor']);
+    expect(groups.size).toBe(1);
+    expect(groups.get('.agents/skills')).toEqual(['cursor']);
+  });
+
+  it('groups trae and trae-cn together under .trae/skills', () => {
+    const groups = groupAgentsByProjectPath(['trae', 'trae-cn']);
+    expect(groups.size).toBe(1);
+    expect(groups.get('.trae/skills')).toEqual(expect.arrayContaining(['trae', 'trae-cn']));
+    expect(groups.get('.trae/skills')).toHaveLength(2);
   });
 });

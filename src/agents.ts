@@ -91,6 +91,35 @@ export function getAgentGlobalPath(agentId: AgentId): string {
   return p;
 }
 
+/**
+ * Resolve an agent's project-level skills path given a project root.
+ * projectPaths are plain relative paths (no env vars), so this is a simple join.
+ */
+export function getAgentProjectPath(agentId: AgentId, projectRoot: string): string {
+  return join(projectRoot, agentRegistry[agentId].projectPath);
+}
+
+/**
+ * Group agent IDs by their projectPath, enabling deduplication when linking/copying.
+ * Returns a Map where keys are projectPath strings and values are arrays of agent IDs
+ * that share that projectPath.
+ */
+export function groupAgentsByProjectPath(agentIds: AgentId[]): Map<string, AgentId[]> {
+  const groups = new Map<string, AgentId[]>();
+  
+  for (const agentId of agentIds) {
+    const projectPath = agentRegistry[agentId].projectPath;
+    
+    if (!groups.has(projectPath)) {
+      groups.set(projectPath, []);
+    }
+    
+    groups.get(projectPath)!.push(agentId);
+  }
+  
+  return groups;
+}
+
 /** Canonical skills directory — the source of truth. */
 export const CANONICAL_SKILLS_DIR = join(homedir(), '.agents', 'skills');
 
