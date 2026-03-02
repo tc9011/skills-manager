@@ -1,16 +1,41 @@
+<div align="center">
+
 # skills-manager
 
-A CLI companion to [vercel-labs/skills](https://github.com/vercel-labs/skills) that backs up your AI agent skills to GitHub and restores them with automatic agent symlink creation.
+**Backup and restore your AI agent skills to GitHub.**
+
+A CLI companion to [vercel-labs/skills](https://github.com/vercel-labs/skills) — push your `~/.agents/` directory to a remote repo, pull it on any machine, and automatically symlink skills to all your agents.
+
+[![npm version](https://img.shields.io/npm/v/%40tc9011%2Fskills-manager?color=cb0000&label=npm)](https://www.npmjs.com/package/@tc9011/skills-manager)
+[![CI](https://img.shields.io/github/actions/workflow/status/tc9011/skills-manager/ci.yml?label=CI)](https://github.com/tc9011/skills-manager/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
+
+</div>
+
+---
 
 ## Why
 
-`vercel-labs/skills` installs and manages skills, but it doesn't handle:
+[vercel-labs/skills](https://github.com/vercel-labs/skills) installs and manages skills, but doesn't handle backup, restore, or cross-machine sync. `skills-manager` fills that gap:
 
-- **Backup** — pushing your `~/.agents/` directory (skills + lock file) to a remote GitHub repo
-- **Restore** — cloning skills back on a new machine
-- **Agent linking** — reading `.skill-lock.json` and creating symlinks to every agent you use
+- **Push** — commit and push `~/.agents/` (skills + lock file) to GitHub
+- **Pull** — clone or pull your skills on any machine
+- **Link** — read `.skill-lock.json` and create symlinks to every agent you use
 
-`skills-manager` fills that gap. It backs up the entire `~/.agents/` directory (including `.skill-lock.json` and `skills/`), reads the lock file that `vercel-labs/skills` owns (never modifies it), and creates relative symlinks from each agent's skills directory back to the canonical `~/.agents/skills/` source.
+> **Note:** This tool reads `.skill-lock.json` but never modifies it — that file is owned by `vercel-labs/skills`.
+
+## Installation
+
+```bash
+# Run directly (no install)
+npx @tc9011/skills-manager push
+
+# Or install globally
+npm install -g @tc9011/skills-manager
+```
+
+**Requirements:** Node.js ≥ 20, [GitHub CLI](https://cli.github.com/) (`gh`) recommended for auth.
 
 ## Quick Start
 
@@ -18,18 +43,20 @@ A CLI companion to [vercel-labs/skills](https://github.com/vercel-labs/skills) t
 # 1. Backup skills to GitHub
 skills-manager push
 
-# 2. Restore skills on a new machine
+# 2. Restore on a new machine
 skills-manager pull --repo owner/my-skills
 
-# 3. Link skills to your agents (auto-runs after pull)
+# 3. Re-link skills to agents (auto-runs after pull)
 skills-manager link
 ```
 
+On first run, `push` and `pull` will interactively set up a git repo and remote if `~/.agents/` isn't already one.
+
 ## Commands
 
-### `push`
+### `skills-manager push`
 
-Commits and pushes the contents of `~/.agents/` (skills + `.skill-lock.json`) to its configured GitHub remote.
+Commits and pushes `~/.agents/` to its configured GitHub remote.
 
 ```bash
 skills-manager push
@@ -40,11 +67,9 @@ skills-manager push -m "add new debugging skill"
 |--------|-------------|
 | `-m, --message <msg>` | Custom commit message (default: auto-generated) |
 
-**Prerequisites**: The `~/.agents/` directory must be a git repository with a remote configured.
+### `skills-manager pull`
 
-### `pull`
-
-Clones or pulls the `~/.agents/` directory from GitHub, then automatically runs `link`.
+Pulls from GitHub and automatically runs `link`.
 
 ```bash
 skills-manager pull --repo tc9011/my-skills
@@ -54,12 +79,12 @@ skills-manager pull --skip-link              # pull only, don't link
 
 | Option | Description |
 |--------|-------------|
-| `-r, --repo <owner/name>` | GitHub repo to pull from (default: existing remote) |
+| `-r, --repo <owner/name>` | GitHub repo to pull from |
 | `--skip-link` | Skip automatic agent linking after pull |
 
-### `link`
+### `skills-manager link`
 
-Reads `~/.agents/.skill-lock.json` (owned by `vercel-labs/skills`) and creates relative symlinks from each agent's global skills directory to the canonical `~/.agents/skills/`.
+Reads `.skill-lock.json` and creates relative symlinks from each agent's skills directory to the canonical `~/.agents/skills/`.
 
 ```bash
 skills-manager link
@@ -68,11 +93,11 @@ skills-manager link --agents cursor opencode claude-code
 
 | Option | Description |
 |--------|-------------|
-| `-a, --agents <ids...>` | Agent IDs to link (default: `lastSelectedAgents` from lock file) |
+| `-a, --agents <ids...>` | Agent IDs to link (default: from lock file) |
 
-**Interactive**: Presents a multiselect prompt with all `lastSelectedAgents` pre-selected. You can deselect agents you don't want to link.
+An interactive multiselect prompt lets you pick which agents to link. Only agents with local directories are pre-selected. Your selection is remembered for next time.
 
-**Symlink model**:
+**Symlink model:**
 
 ```
 ~/.config/opencode/skills/my-skill → ../../../.agents/skills/my-skill   (relative)
@@ -81,17 +106,20 @@ skills-manager link --agents cursor opencode claude-code
 
 ## Authentication
 
-Token resolution order:
+Resolved in this order:
 
-1. `gh auth token` — GitHub CLI (preferred)
-2. `$GITHUB_TOKEN` environment variable
-3. `$GH_TOKEN` environment variable
+1. **`gh auth token`** — GitHub CLI (recommended)
+2. **`$GITHUB_TOKEN`** — environment variable
+3. **`$GH_TOKEN`** — environment variable
 
-If none found, `push` and `pull` will fail with a clear error message. `link` does not require authentication.
+If none found, you'll be prompted to run `gh auth login`. The `link` command does not require authentication.
 
 ## Supported Agents
 
-### Universal Agents (share `.agents/skills`)
+41 agents — matching the full [vercel-labs/skills](https://github.com/vercel-labs/skills) registry.
+
+<details>
+<summary><strong>Universal Agents</strong> (share <code>~/.agents/skills</code>)</summary>
 
 | Agent | ID | Global Path |
 |-------|----|-------------|
@@ -106,7 +134,10 @@ If none found, `push` and `pull` will fail with a clear error message. `link` do
 | Replit | `replit` | `~/.config/agents/skills` |
 | Universal | `universal` | `~/.config/agents/skills` |
 
-### Non-Universal Agents (agent-specific paths)
+</details>
+
+<details>
+<summary><strong>Non-Universal Agents</strong> (agent-specific paths)</summary>
 
 | Agent | ID | Global Path |
 |-------|----|-------------|
@@ -136,96 +167,93 @@ If none found, `push` and `pull` will fail with a clear error message. `link` do
 | Pochi | `pochi` | `~/.pochi/skills` |
 | Qoder | `qoder` | `~/.qoder/skills` |
 | Qwen Code | `qwen-code` | `~/.qwen/skills` |
-| Replit | `replit` | `~/.config/agents/skills` |
 | Roo Code | `roo` | `~/.roo/skills` |
 | Trae | `trae` | `~/.trae/skills` |
 | Trae CN | `trae-cn` | `~/.trae-cn/skills` |
 | Windsurf | `windsurf` | `~/.codeium/windsurf/skills` |
 | Zencoder | `zencoder` | `~/.zencoder/skills` |
 
-**41 agents total** — matching the full [vercel-labs/skills](https://github.com/vercel-labs/skills) agent registry.
+</details>
 
 ## Environment Variables
 
 | Variable | Used By | Default |
 |----------|---------|---------|
-| `$GITHUB_TOKEN` | `push`, `pull` | — |
-| `$GH_TOKEN` | `push`, `pull` | — |
-| `$XDG_CONFIG_HOME` | `opencode`, `amp`, `kimi-cli`, `replit`, `universal` | `~/.config` |
-| `$CODEX_HOME` | `codex` | `~/.codex` |
-| `$CLAUDE_CONFIG_DIR` | `claude-code` | `~/.claude` |
+| `GITHUB_TOKEN` | `push`, `pull` | — |
+| `GH_TOKEN` | `push`, `pull` | — |
+| `XDG_CONFIG_HOME` | `opencode`, `amp`, `kimi-cli`, `replit`, `universal` | `~/.config` |
+| `CODEX_HOME` | `codex` | `~/.codex` |
+| `CLAUDE_CONFIG_DIR` | `claude-code` | `~/.claude` |
 
-## Development
+## How It Works
 
-### Prerequisites
+```
+~/.agents/                  ← Git repo (push/pull target)
+├── .skill-lock.json        ← Owned by vercel-labs/skills (read-only)
+└── skills/
+    ├── my-skill/
+    └── another-skill/
 
-- Node.js ≥ 20
-- GitHub CLI (`gh`) for authentication (recommended)
+skills-manager link reads .skill-lock.json → creates relative symlinks:
 
-### Local Debugging
+~/.cursor/skills/my-skill        → ../../.agents/skills/my-skill
+~/.claude/skills/my-skill        → ../../.agents/skills/my-skill
+~/.config/opencode/skills/my-skill → ../../../.agents/skills/my-skill
+```
+
+## Contributing
+
+### Setup
 
 ```bash
-# Run any command directly with tsx (no build step needed)
+git clone https://github.com/tc9011/skills-manager.git
+cd skills-manager
+npm install
+```
+
+### Development
+
+```bash
+# Run commands directly (no build step)
 npx tsx src/index.ts push
-npx tsx src/index.ts pull --repo owner/my-skills
 npx tsx src/index.ts link
-npx tsx src/index.ts link --agents cursor opencode
 
-# Or use the dev script (same thing)
+# Or via npm script
 npm run dev -- push
-npm run dev -- link -- --agents cursor
 ```
 
-To simulate a real global install:
+### Testing
 
 ```bash
-npm link                        # register skills-manager globally
-skills-manager push             # use it like an end user
-npm unlink -g skills-manager    # clean up when done
+npm test                  # run tests
+npm run test:watch        # watch mode
+npm run test:coverage     # with coverage report
 ```
 
-### Scripts
+### Build
 
 ```bash
-npm install           # install dependencies
-npm run dev           # run via tsx (development)
-npm test              # run tests (vitest)
-npm run test:watch    # watch mode
-npm run build         # compile TypeScript to dist/
+npm run build             # compile TypeScript → dist/
+npm run lint              # run ESLint
 ```
-
-### Tech Stack
-
-- **Runtime**: Node.js + TypeScript (ESM)
-- **CLI framework**: [Commander.js](https://github.com/tj/commander.js)
-- **Git operations**: [simple-git](https://github.com/steveukx/git-js)
-- **Interactive prompts**: [@clack/prompts](https://github.com/bombshell-dev/clack)
-- **Testing**: [Vitest](https://vitest.dev/)
-- **Dev runner**: [tsx](https://github.com/privatenumber/tsx)
 
 ### Project Structure
 
 ```
 src/
-├── index.ts              # CLI entry point
-├── agents.ts             # 41-agent registry with path resolution
-├── auth.ts               # GitHub token resolution (gh CLI → env vars)
+├── index.ts              # CLI entry point (Commander.js)
+├── agents.ts             # 41-agent registry + path resolution
+├── auth.ts               # GitHub token resolution
+├── config.ts             # XDG-compliant config persistence
 ├── lockfile.ts           # Read-only .skill-lock.json parser
 ├── linker.ts             # Relative symlink creation
 ├── git-ops.ts            # Git push/pull via simple-git
 └── commands/
-    ├── push.ts           # push command handler
-    ├── pull.ts           # pull command handler (auto-links)
-    └── link.ts           # link command handler (interactive)
+    ├── push.ts           # Push handler
+    ├── pull.ts           # Pull handler (auto-runs link)
+    └── link.ts           # Link handler (interactive multiselect)
 ```
-
-### Adding a New Agent
-
-1. Add the agent ID to the `AgentId` union type in `src/agents.ts`
-2. Add the agent entry to `agentRegistry` with `displayName`, `projectPath`, `globalPath`, and `universal` flag
-3. If the agent uses an environment variable for path resolution, add it to `getAgentGlobalPath()`
-4. Add a test case in `src/agents.test.ts`
 
 ## License
 
-MIT
+[MIT](./LICENSE)

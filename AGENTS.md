@@ -11,15 +11,33 @@ Coding guidelines for AI agents working on this project.
 ```
 src/
 ├── index.ts              # CLI entry point (Commander.js)
+├── errors.ts             # CliError class for structured error handling
 ├── agents.ts             # Agent registry (41 agents) + path resolution
-├── auth.ts               # GitHub token resolution
+├── auth.ts               # GitHub token resolution (gh CLI → env vars → interactive)
+├── config.ts             # XDG-compliant config persistence (~/.config/skills-manager/)
 ├── lockfile.ts           # .skill-lock.json reader (READ ONLY)
 ├── linker.ts             # Symlink creation (relative paths)
-├── git-ops.ts            # Git push/pull via simple-git
+├── git-ops.ts            # Git push/pull via simple-git + repo init/remote setup
 └── commands/
-    ├── push.ts           # Push handler
+    ├── push.ts           # Push handler (auto git-init + remote prompt)
     ├── pull.ts           # Pull handler (auto-runs link)
-    └── link.ts           # Link handler (interactive multiselect)
+    └── link.ts           # Link handler (interactive multiselect, remembers selection)
+```
+
+### Key Constants (`src/agents.ts`)
+
+```typescript
+export const AGENTS_DIR = join(homedir(), '.agents');           // git repo root
+export const CANONICAL_SKILLS_DIR = join(homedir(), '.agents', 'skills');  // symlink target
+export const SKILL_LOCK_PATH = join(homedir(), '.agents', '.skill-lock.json');
+```
+
+### Data Flow
+
+```
+push:  ~/.agents/ → git add → git commit → git push origin <branch>
+pull:  git pull --rebase → auto-run link
+link:  read .skill-lock.json → detect local agents → multiselect → create relative symlinks
 ```
 
 ## Critical Constraints
@@ -27,6 +45,10 @@ src/
 ### `.skill-lock.json` is READ ONLY
 
 The lock file at `~/.agents/.skill-lock.json` is owned by `vercel-labs/skills`. This project must NEVER create, modify, or delete it. Only read `lastSelectedAgents` from it.
+
+### Git repo root is `~/.agents/`
+
+The entire `~/.agents/` directory is the git repository — not `~/.agents/skills/`. This ensures both `.skill-lock.json` and the `skills/` directory are versioned together.
 
 ### Symlinks must be relative
 
@@ -44,7 +66,9 @@ The 41-agent registry in `agents.ts` must stay synchronized with the upstream ag
 - **CLI**: Commander.js
 - **Git**: simple-git (named import: `import { simpleGit } from 'simple-git'`)
 - **Prompts**: @clack/prompts
-- **Testing**: Vitest
+- **Testing**: Vitest + @vitest/coverage-v8
+- **Linting**: ESLint (flat config, typescript-eslint)
+- **Hooks**: Husky (pre-commit: lint-staged, pre-push: test:coverage)
 
 ## Code Conventions
 
@@ -80,13 +104,18 @@ Commands follow this pattern:
 2. Show spinner during async operations
 3. Catch errors → `p.cancel()` → `process.exit(1)`
 
+Use `CliError` from `errors.ts` for user-facing errors with structured exit codes.
+
 ### Testing
 
 - TDD: write failing test first, implement, verify pass
 - Tests use Vitest with globals enabled
 - Mock filesystem operations — don't touch real `~/.agents/`
 - Test files are colocated: `foo.ts` → `foo.test.ts`
+- Use `vi.resetAllMocks()` (not `vi.clearAllMocks()`) to reset `mockReturnValue` implementations
+- When mocking `node:child_process`, place it in `vi.hoisted()` block
 - Run tests: `npm test`
+- Run coverage: `npm run test:coverage`
 
 ### Git Conventions
 
@@ -95,6 +124,7 @@ Commit messages follow Conventional Commits:
 - `fix:` — bug fix
 - `chore:` — tooling, dependencies
 - `docs:` — documentation only
+- `test:` — test additions or fixes
 
 ## Environment Variables
 
@@ -105,6 +135,12 @@ Commit messages follow Conventional Commits:
 | `XDG_CONFIG_HOME` | Path resolution for opencode, amp, etc. | `~/.config` |
 | `CODEX_HOME` | Path resolution for codex | `~/.codex` |
 | `CLAUDE_CONFIG_DIR` | Path resolution for claude-code | `~/.claude` |
+
+## CI/CD
+
+- **CI** (`ci.yml`): Runs on push/PR to main/master → lint → test:coverage → build (Node 22)
+- **Publish** (`publish.yml`): Runs on GitHub Release → lint → test → build → `npm publish` via OIDC Trusted Publishers (no NPM_TOKEN needed)
+- **Package**: `@tc9011/skills-manager` on npm, published with provenance
 
 ## Common Tasks
 
@@ -120,3 +156,17 @@ Commit messages follow Conventional Commits:
 1. Create `src/commands/<name>.ts` with an async handler function
 2. Wire it up in `src/index.ts` via `program.command()`
 3. Add tests in `src/commands/<name>.test.ts`
+
+### Running locally
+
+```bash
+npx tsx src/index.ts push              # run directly with tsx
+npm run dev -- push                    # same via npm script
+npm link && skills-manager push        # simulate global install
+```
+
+### Publishing a new version
+
+1. Bump version in `package.json`
+2. Push to GitHub
+3. Create a GitHub Release (tag `vX.Y.Z`) — triggers automatic publish via OIDC
