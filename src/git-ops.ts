@@ -1,7 +1,8 @@
 // src/git-ops.ts
 import { simpleGit, type SimpleGit } from 'simple-git';
-import { existsSync, readdirSync, readFileSync, appendFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { execSync } from 'node:child_process';
 
 /**
  * Build a clean GitHub HTTPS remote URL (no embedded credentials).
@@ -245,4 +246,62 @@ export async function pullSkills(
   }
 
   return { cloned: false, pulled: true };
+}
+
+/**
+ * Ensure a directory is a git repository. If not, runs `git init`.
+ * Creates the directory if it doesn't exist.
+ */
+export async function ensureGitRepo(dir: string): Promise<{ initialized: boolean }> {
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+
+  if (existsSync(join(dir, '.git'))) {
+    return { initialized: false };
+  }
+
+  const git = simpleGit(dir);
+  await git.init();
+  return { initialized: true };
+}
+
+/**
+ * Ensure origin remote is configured. If not, add it from the given repo slug.
+ * Returns the remote URL and whether it was newly added.
+ */
+export async function ensureRemote(
+  dir: string,
+  repo: string,
+): Promise<{ remoteUrl: string; added: boolean }> {
+  const git = simpleGit(dir);
+  const remotes = await git.getRemotes(true);
+  const origin = remotes.find((r) => r.name === 'origin');
+
+  if (origin?.refs.fetch) {
+    return { remoteUrl: origin.refs.fetch, added: false };
+  }
+
+  const remoteUrl = buildRemoteUrl(repo);
+  await git.remote(['add', 'origin', remoteUrl]);
+  return { remoteUrl, added: true };
+}
+
+/**
+ * Create a GitHub repository using the `gh` CLI.
+ * Throws if `gh` is not installed or the command fails.
+ */
+export function createGitHubRepo(
+  repo: string,
+  options?: { isPublic?: boolean },
+): void {
+  const visibility = options?.isPublic ? '--public' : '--private';
+  try {
+    execSync(`gh repo create ${repo} ${visibility} --confirm`, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+  } catch (err) {
+    throw new Error(`Failed to create GitHub repository '${repo}': ${String(err)}`, { cause: err });
+  }
 }

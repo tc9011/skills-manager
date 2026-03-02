@@ -2,7 +2,13 @@
 import { AGENTS_DIR } from '../agents.js';
 import { ensureGitHubToken } from '../auth.js';
 import { CliError } from '../errors.js';
-import { pushSkills, getRepoRemoteUrl } from '../git-ops.js';
+import {
+  pushSkills,
+  getRepoRemoteUrl,
+  ensureGitRepo,
+  ensureRemote,
+  createGitHubRepo,
+} from '../git-ops.js';
 import * as p from '@clack/prompts';
 
 export async function pushCommand(options: { message?: string }): Promise<void> {
@@ -11,14 +17,36 @@ export async function pushCommand(options: { message?: string }): Promise<void> 
   // 1. Check auth
   const token = await ensureGitHubToken();
 
-  // 2. Check canonical dir has a remote
+  // 2. Ensure ~/.agents is a git repo (auto-init if needed)
+  await ensureGitRepo(AGENTS_DIR);
+
+  // 3. Check for existing remote
   const remote = await getRepoRemoteUrl(AGENTS_DIR);
+
+  // 4. If no remote, prompt user for repo and configure
   if (!remote) {
-    p.cancel(`No git remote found in ${AGENTS_DIR}. Initialize with git first.`);
-    throw new CliError(`No git remote found in ${AGENTS_DIR}.`);
+    const repo = await p.text({
+      message: 'Enter GitHub repo (owner/name):',
+      placeholder: 'e.g. tc9011/my-skills',
+    });
+
+    if (p.isCancel(repo)) {
+      p.cancel('Push cancelled.');
+      throw new CliError('Push cancelled by user.');
+    }
+
+    await ensureRemote(AGENTS_DIR, repo);
+
+    const shouldCreate = await p.confirm({
+      message: 'Create this repo on GitHub? (requires gh CLI)',
+    });
+
+    if (shouldCreate === true) {
+      createGitHubRepo(repo);
+    }
   }
 
-  // 3. Push
+  // 5. Push
   const spinner = p.spinner();
   spinner.start('Pushing skills to GitHub...');
 

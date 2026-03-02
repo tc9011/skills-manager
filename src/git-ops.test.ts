@@ -1,14 +1,16 @@
 // src/git-ops.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildRemoteUrl, detectSuspiciousFiles, ensureGitignore, getRepoRemoteUrl, pushSkills, pullSkills } from './git-ops.js';
-import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
+import { buildRemoteUrl, detectSuspiciousFiles, ensureGitignore, getRepoRemoteUrl, pushSkills, pullSkills, ensureGitRepo, ensureRemote, createGitHubRepo } from './git-ops.js';
+import { mkdtemp, rm, writeFile, readFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { existsSync } from 'node:fs';
+import { execSync as _execSync } from 'node:child_process';
 
 // ---------------------------------------------------------------------------
 // simple-git mock setup (vi.hoisted ensures this runs before vi.mock hoisting)
 // ---------------------------------------------------------------------------
-const { mockGit } = vi.hoisted(() => {
+const { mockGit, mockExecSync } = vi.hoisted(() => {
   const mockGit = {
     getRemotes: vi.fn(),
     status: vi.fn(),
@@ -22,12 +24,19 @@ const { mockGit } = vi.hoisted(() => {
     raw: vi.fn(),
     checkout: vi.fn(),
     rebase: vi.fn(),
+    init: vi.fn(),
   };
-  return { mockGit };
+  const mockExecSync = vi.fn();
+  return { mockGit, mockExecSync };
 });
 
 vi.mock('simple-git', () => ({
   simpleGit: vi.fn(() => mockGit),
+}));
+
+vi.mock('node:child_process', () => ({
+  execSync: mockExecSync,
+  spawnSync: vi.fn(),
 }));
 
 describe('buildRemoteUrl', () => {
@@ -319,5 +328,116 @@ describe('pullSkills', () => {
     await pullSkills(tempDir, 'https://github.com/user/repo.git');
 
     expect(mockGit.checkout).toHaveBeenCalledWith('main');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ensureGitRepo
+// ---------------------------------------------------------------------------
+describe('ensureGitRepo', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'ensure-git-test-'));
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('returns { initialized: false } when .git already exists', async () => {
+    await mkdir(join(tempDir, '.git'));
+
+    const result = await ensureGitRepo(tempDir);
+
+    expect(result).toEqual({ initialized: false });
+    expect(mockGit.init).not.toHaveBeenCalled();
+  });
+
+  it('runs git init and returns { initialized: true } when no .git directory', async () => {
+    mockGit.init.mockResolvedValue(undefined);
+
+    const result = await ensureGitRepo(tempDir);
+
+    expect(mockGit.init).toHaveBeenCalled();
+    expect(result).toEqual({ initialized: true });
+  });
+
+  it('creates the directory if it does not exist', async () => {
+    const nonexistent = join(tempDir, 'subdir');
+    mockGit.init.mockResolvedValue(undefined);
+
+    await ensureGitRepo(nonexistent);
+
+    expect(existsSync(nonexistent)).toBe(true);
+    expect(mockGit.init).toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ensureRemote
+// ---------------------------------------------------------------------------
+describe('ensureRemote', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns existing remote URL when origin is already configured', async () => {
+    mockGit.getRemotes.mockResolvedValue([
+      { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
+    ]);
+
+    const result = await ensureRemote('/fake/dir', 'owner/new-repo');
+
+    expect(result).toEqual({ remoteUrl: 'https://github.com/user/repo.git', added: false });
+    expect(mockGit.remote).not.toHaveBeenCalled();
+  });
+
+  it('adds origin remote when none exists', async () => {
+    mockGit.getRemotes.mockResolvedValue([]);
+    mockGit.remote.mockResolvedValue(undefined);
+
+    const result = await ensureRemote('/fake/dir', 'owner/new-repo');
+
+    expect(mockGit.remote).toHaveBeenCalledWith(['add', 'origin', 'https://github.com/owner/new-repo.git']);
+    expect(result).toEqual({ remoteUrl: 'https://github.com/owner/new-repo.git', added: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createGitHubRepo
+// ---------------------------------------------------------------------------
+describe('createGitHubRepo', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('runs gh repo create with --private flag', () => {
+    mockExecSync.mockReturnValue(Buffer.from(''));
+
+    createGitHubRepo('owner/my-skills');
+
+    expect(mockExecSync).toHaveBeenCalledWith(
+      'gh repo create owner/my-skills --private --confirm',
+      expect.objectContaining({ stdio: ['pipe', 'pipe', 'pipe'] }),
+    );
+  });
+
+  it('runs gh repo create with --public flag when public option set', () => {
+    mockExecSync.mockReturnValue(Buffer.from(''));
+
+    createGitHubRepo('owner/my-skills', { isPublic: true });
+
+    expect(mockExecSync).toHaveBeenCalledWith(
+      'gh repo create owner/my-skills --public --confirm',
+      expect.objectContaining({ stdio: ['pipe', 'pipe', 'pipe'] }),
+    );
+  });
+
+  it('throws when gh repo create fails', () => {
+    mockExecSync.mockImplementation(() => { throw new Error('gh: command not found'); });
+
+    expect(() => createGitHubRepo('owner/my-skills')).toThrow('Failed to create GitHub repository');
   });
 });
