@@ -43,6 +43,25 @@ describe('push command logic', () => {
     expect(vi.mocked(pushSkills).mock.calls[0][2]).toBe('ghp_test_token');
   });
 
+  it('throws CliError when no remote found', async () => {
+    const { CliError } = await import('../errors.js');
+    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getRepoRemoteUrl).mockResolvedValue(null);
+
+    const { pushCommand } = await import('./push.js');
+    await expect(pushCommand({})).rejects.toThrow(CliError);
+  });
+
+  it('throws CliError when pushSkills throws', async () => {
+    const { CliError } = await import('../errors.js');
+    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/user/repo.git');
+    vi.mocked(pushSkills).mockRejectedValue(new Error('push failed'));
+
+    const { pushCommand } = await import('./push.js');
+    await expect(pushCommand({})).rejects.toThrow(CliError);
+  });
+
   it('shows warning for suspicious files', async () => {
     const prompts = await import('@clack/prompts');
     vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');

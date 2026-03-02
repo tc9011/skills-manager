@@ -92,6 +92,42 @@ describe('linkCommand', () => {
     });
   });
 
+  it('throws CliError when no skills found in canonical dir', async () => {
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor'] as any);
+    vi.mocked(listCanonicalSkills).mockResolvedValue([]);
+
+    const { linkCommand } = await import('./link.js');
+    await expect(linkCommand({})).rejects.toThrow(CliError);
+  });
+
+  it('returns gracefully when user cancels multiselect', async () => {
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+    vi.mocked(prompts.isCancel).mockReturnValue(true);
+    vi.mocked(prompts.multiselect).mockResolvedValue(Symbol('cancel') as any);
+
+    const { linkCommand } = await import('./link.js');
+    // Should not throw — just returns after cancel
+    await linkCommand({});
+
+    expect(prompts.cancel).toHaveBeenCalledWith('No agents selected.');
+    expect(createSkillSymlinks).not.toHaveBeenCalled();
+  });
+
+  it('handles agent symlink creation failure in summary', async () => {
+    vi.mocked(prompts.isCancel).mockReturnValue(false);
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor'] as any);
+    vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+    vi.mocked(createSkillSymlinks).mockRejectedValue(new Error('permission denied'));
+
+    const { linkCommand } = await import('./link.js');
+    await linkCommand({});
+
+    // Should show summary with skipped agent, not throw
+    expect(prompts.note).toHaveBeenCalled();
+  });
+
   it('uses saved lastLinkedAgents for initial selection', async () => {
     vi.mocked(readConfig).mockReturnValue({ lastLinkedAgents: ['opencode'] });
     vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as any);

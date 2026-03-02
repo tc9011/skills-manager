@@ -69,7 +69,7 @@ function buildAuthUrl(cleanUrl: string, token: string | null): string {
 /**
  * Check if a git repo has uncommitted changes.
  */
-async function hasUncommittedChanges(dir: string): Promise<boolean> {
+async function _hasUncommittedChanges(dir: string): Promise<boolean> {
   const git = simpleGit(dir);
   const status = await git.status();
   return !status.isClean();
@@ -222,6 +222,7 @@ export async function pullSkills(
           + `  git rebase origin/${branch}   # resolve conflicts, then git rebase --continue\n`
           + 'Or force-reset to remote (loses local changes):\n'
           + `  git reset --hard origin/${branch}`,
+          { cause: err },
         );
       }
       throw err;

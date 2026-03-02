@@ -57,6 +57,20 @@ describe('getGitHubToken', () => {
     const token = getGitHubToken();
     expect(token).toBeNull();
   });
+
+  it('returns null when gh auth token returns empty string', () => {
+    mockExecSync.mockReturnValue('   \n');
+    const token = getGitHubToken();
+    expect(token).toBeNull();
+  });
+
+  it('prefers GITHUB_TOKEN over GH_TOKEN', () => {
+    mockExecSync.mockImplementation(() => { throw new Error('gh not found'); });
+    process.env.GITHUB_TOKEN = 'ghp_github_token';
+    process.env.GH_TOKEN = 'ghp_gh_token';
+    const token = getGitHubToken();
+    expect(token).toBe('ghp_github_token');
+  });
 });
 
 describe('ensureGitHubToken', () => {
@@ -91,6 +105,7 @@ describe('ensureGitHubToken', () => {
 
   it('throws CliError when user selects env', async () => {
     mockExecSync.mockImplementation(() => { throw new Error('no gh'); });
+    vi.mocked(p.isCancel).mockReturnValue(false);
     vi.mocked(p.select).mockResolvedValue('env');
 
     await expect(ensureGitHubToken()).rejects.toThrow(CliError);
@@ -104,4 +119,26 @@ describe('ensureGitHubToken', () => {
 
     await expect(ensureGitHubToken()).rejects.toThrow(CliError);
   });
-}); 
+
+  it('throws CliError when gh auth login fails (non-zero status)', async () => {
+    mockExecSync.mockImplementation(() => { throw new Error('no gh'); });
+    vi.mocked(p.isCancel).mockReturnValue(false);
+    vi.mocked(p.select).mockResolvedValue('gh');
+    mockSpawnSync.mockReturnValue({ status: 1 } as any);
+
+    await expect(ensureGitHubToken()).rejects.toThrow(CliError);
+    await expect(ensureGitHubToken()).rejects.toThrow('gh auth login failed');
+  });
+
+  it('throws CliError when token is still null after successful gh auth login', async () => {
+    // First call: no token. spawnSync succeeds. Second call: still no token.
+    mockExecSync.mockImplementation(() => { throw new Error('no gh'); });
+    vi.mocked(p.isCancel).mockReturnValue(false);
+    vi.mocked(p.select).mockResolvedValue('gh');
+    mockSpawnSync.mockReturnValue({ status: 0 } as any);
+
+    await expect(ensureGitHubToken()).rejects.toThrow(CliError);
+    await expect(ensureGitHubToken()).rejects.toThrow('No token after gh auth login');
+  });
+
+});

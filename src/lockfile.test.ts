@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readLockFile, getLastSelectedAgents } from './lockfile.js';
-import type { AgentId } from './agents.js';
 
 // Mock fs to avoid reading real files in tests
 vi.mock('node:fs/promises', () => ({
@@ -52,6 +51,14 @@ describe('readLockFile', () => {
   it('throws on invalid JSON', async () => {
     mockReadFile.mockResolvedValue('not json{{{');
     await expect(readLockFile('/bad/path')).rejects.toThrow();
+  });
+
+  it('re-throws non-ENOENT errors', async () => {
+    const err = new Error('EACCES') as NodeJS.ErrnoException;
+    err.code = 'EACCES';
+    mockReadFile.mockRejectedValue(err);
+
+    await expect(readLockFile('/permission/denied')).rejects.toThrow('EACCES');
   });
 });
 

@@ -1,9 +1,34 @@
 // src/git-ops.test.ts
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { buildRemoteUrl, detectSuspiciousFiles, ensureGitignore } from './git-ops.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { buildRemoteUrl, detectSuspiciousFiles, ensureGitignore, getRepoRemoteUrl, pushSkills, pullSkills } from './git-ops.js';
 import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+
+// ---------------------------------------------------------------------------
+// simple-git mock setup (vi.hoisted ensures this runs before vi.mock hoisting)
+// ---------------------------------------------------------------------------
+const { mockGit } = vi.hoisted(() => {
+  const mockGit = {
+    getRemotes: vi.fn(),
+    status: vi.fn(),
+    add: vi.fn(),
+    commit: vi.fn(),
+    push: vi.fn(),
+    pull: vi.fn(),
+    remote: vi.fn(),
+    clone: vi.fn(),
+    branchLocal: vi.fn(),
+    raw: vi.fn(),
+    checkout: vi.fn(),
+    rebase: vi.fn(),
+  };
+  return { mockGit };
+});
+
+vi.mock('simple-git', () => ({
+  simpleGit: vi.fn(() => mockGit),
+}));
 
 describe('buildRemoteUrl', () => {
   it('builds clean HTTPS URL without credentials', () => {
@@ -96,5 +121,203 @@ describe('ensureGitignore', () => {
     ensureGitignore(tempDir);
     const content = await readFile(join(tempDir, '.gitignore'), 'utf-8');
     expect(content).toBe('node_modules\n.DS_Store\n');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getRepoRemoteUrl
+// ---------------------------------------------------------------------------
+describe('getRepoRemoteUrl', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns fetch URL when origin remote exists', async () => {
+    mockGit.getRemotes.mockResolvedValue([
+      { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
+    ]);
+
+    const url = await getRepoRemoteUrl('/fake/dir');
+    expect(url).toBe('https://github.com/user/repo.git');
+  });
+
+  it('returns null when no remotes exist', async () => {
+    mockGit.getRemotes.mockResolvedValue([]);
+
+    const url = await getRepoRemoteUrl('/fake/dir');
+    expect(url).toBeNull();
+  });
+
+  it('returns null when origin remote is missing but others exist', async () => {
+    mockGit.getRemotes.mockResolvedValue([
+      { name: 'upstream', refs: { fetch: 'https://github.com/other/repo.git', push: 'https://github.com/other/repo.git' } },
+    ]);
+
+    const url = await getRepoRemoteUrl('/fake/dir');
+    expect(url).toBeNull();
+  });
+
+  it('returns null on error', async () => {
+    mockGit.getRemotes.mockRejectedValue(new Error('not a git repo'));
+
+    const url = await getRepoRemoteUrl('/fake/dir');
+    expect(url).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// pushSkills
+// ---------------------------------------------------------------------------
+describe('pushSkills', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'push-test-'));
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('stages, commits, and pushes on happy path', async () => {
+    mockGit.status.mockResolvedValue({ isClean: () => false });
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.commit.mockResolvedValue(undefined);
+    mockGit.push.mockResolvedValue(undefined);
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+
+    const result = await pushSkills(tempDir, 'test commit');
+
+    expect(mockGit.add).toHaveBeenCalledWith('-A');
+    expect(mockGit.commit).toHaveBeenCalledWith('test commit');
+    expect(mockGit.push).toHaveBeenCalledWith('origin', 'main');
+    expect(result).toEqual({ committed: true, pushed: true });
+  });
+
+  it('skips commit when working tree is clean', async () => {
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.status.mockResolvedValue({ isClean: () => true });
+
+    const result = await pushSkills(tempDir);
+
+    expect(mockGit.commit).not.toHaveBeenCalled();
+    expect(mockGit.push).not.toHaveBeenCalled();
+    expect(result.committed).toBe(false);
+    expect(result.pushed).toBe(false);
+  });
+
+  it('uses token with temporary remote URL and restores clean URL', async () => {
+    mockGit.status.mockResolvedValue({ isClean: () => false });
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.commit.mockResolvedValue(undefined);
+    mockGit.push.mockResolvedValue(undefined);
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.getRemotes.mockResolvedValue([
+      { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
+    ]);
+    mockGit.remote.mockResolvedValue(undefined);
+
+    await pushSkills(tempDir, 'test', 'ghp_token123');
+
+    expect(mockGit.remote).toHaveBeenCalledTimes(2);
+    expect(mockGit.remote).toHaveBeenNthCalledWith(1, ['set-url', 'origin', 'https://x-access-token:ghp_token123@github.com/user/repo.git']);
+    expect(mockGit.remote).toHaveBeenNthCalledWith(2, ['set-url', 'origin', 'https://github.com/user/repo.git']);
+  });
+
+  it('pushes without token when token is null', async () => {
+    mockGit.status.mockResolvedValue({ isClean: () => false });
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.commit.mockResolvedValue(undefined);
+    mockGit.push.mockResolvedValue(undefined);
+    mockGit.branchLocal.mockResolvedValue({ current: 'master' });
+
+    await pushSkills(tempDir, 'test', null);
+
+    expect(mockGit.remote).not.toHaveBeenCalled();
+    expect(mockGit.push).toHaveBeenCalledWith('origin', 'master');
+  });
+
+  it('uses auto-generated commit message when none provided', async () => {
+    mockGit.status.mockResolvedValue({ isClean: () => false });
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.commit.mockResolvedValue(undefined);
+    mockGit.push.mockResolvedValue(undefined);
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+
+    await pushSkills(tempDir);
+
+    const commitCall = mockGit.commit.mock.calls[0][0] as string;
+    expect(commitCall).toMatch(/^backup:/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// pullSkills
+// ---------------------------------------------------------------------------
+describe('pullSkills', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'pull-test-'));
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('clones when no .git directory exists', async () => {
+    mockGit.clone.mockResolvedValue(undefined);
+    // Remove tempDir so it looks like a non-existent target
+    await rm(tempDir, { recursive: true, force: true });
+
+    const result = await pullSkills(tempDir, 'https://github.com/user/repo.git');
+
+    expect(mockGit.clone).toHaveBeenCalledWith('https://github.com/user/repo.git', tempDir);
+    expect(result).toEqual({ cloned: true, pulled: false });
+  });
+
+  it('clones with auth URL and resets remote when token provided', async () => {
+    mockGit.clone.mockResolvedValue(undefined);
+    mockGit.remote.mockResolvedValue(undefined);
+    await rm(tempDir, { recursive: true, force: true });
+
+    await pullSkills(tempDir, 'https://github.com/user/repo.git', 'ghp_token456');
+
+    expect(mockGit.clone).toHaveBeenCalledWith(
+      'https://x-access-token:ghp_token456@github.com/user/repo.git',
+      tempDir,
+    );
+    expect(mockGit.remote).toHaveBeenCalledWith(['set-url', 'origin', 'https://github.com/user/repo.git']);
+  });
+
+  it('pulls when .git directory exists', async () => {
+    const { mkdir } = await import('node:fs/promises');
+    await mkdir(join(tempDir, '.git'));
+
+    mockGit.raw.mockResolvedValue('HEAD branch: main\n');
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.pull.mockResolvedValue(undefined);
+
+    const result = await pullSkills(tempDir, 'https://github.com/user/repo.git');
+
+    expect(mockGit.pull).toHaveBeenCalledWith('origin', 'main', { '--rebase': null });
+    expect(result).toEqual({ cloned: false, pulled: true });
+  });
+
+  it('checks out target branch when HEAD is detached', async () => {
+    const { mkdir } = await import('node:fs/promises');
+    await mkdir(join(tempDir, '.git'));
+
+    mockGit.raw.mockResolvedValue('HEAD branch: main\n');
+    // Simulate detached HEAD (current is a commit hash)
+    mockGit.branchLocal.mockResolvedValue({ current: 'a1b2c3d' });
+    mockGit.checkout.mockResolvedValue(undefined);
+    mockGit.pull.mockResolvedValue(undefined);
+
+    await pullSkills(tempDir, 'https://github.com/user/repo.git');
+
+    expect(mockGit.checkout).toHaveBeenCalledWith('main');
   });
 });

@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm, mkdir, writeFile, readlink, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createSkillSymlinks, computeRelativeSymlinkTarget, type LinkResult } from './linker.js';
+import { createSkillSymlinks, computeRelativeSymlinkTarget, listCanonicalSkills } from './linker.js';
 
 describe('computeRelativeSymlinkTarget', () => {
   it('computes relative path from opencode global to canonical', () => {
@@ -112,5 +112,67 @@ describe('createSkillSymlinks', () => {
     // Verify new symlink is correct
     const newTarget = await readlink(linkPath);
     expect(newTarget).toContain('.agents/skills/my-skill');
+  });
+
+  it('skips when path exists as real directory (not symlink)', async () => {
+    const canonical = join(tempDir, '.agents', 'skills');
+    await mkdir(join(canonical, 'my-skill'), { recursive: true });
+    await writeFile(join(canonical, 'my-skill', 'SKILL.md'), '# My Skill');
+    const agentDir = join(tempDir, '.config', 'opencode', 'skills');
+    // Create a real directory at the link path
+    await mkdir(join(agentDir, 'my-skill'), { recursive: true });
+
+    const results = await createSkillSymlinks(canonical, agentDir, ['my-skill']);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].status).toBe('skipped');
+    expect(results[0].reason).toContain('not a symlink');
+  });
+
+  it('returns empty array when skillNames is empty', async () => {
+    const canonical = join(tempDir, '.agents', 'skills');
+    await mkdir(canonical, { recursive: true });
+    const agentDir = join(tempDir, '.config', 'opencode', 'skills');
+    await mkdir(agentDir, { recursive: true });
+
+    const results = await createSkillSymlinks(canonical, agentDir, []);
+    expect(results).toEqual([]);
+  });
+
+});
+
+describe('listCanonicalSkills', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'linker-list-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('returns empty array for empty directory', async () => {
+    const result = await listCanonicalSkills(tempDir);
+    expect(result).toEqual([]);
+  });
+
+  it('returns only directory names, not files', async () => {
+    await mkdir(join(tempDir, 'my-skill'), { recursive: true });
+    await writeFile(join(tempDir, 'README.md'), '# readme');
+    const result = await listCanonicalSkills(tempDir);
+    expect(result).toEqual(['my-skill']);
+  });
+
+  it('filters out hidden directories', async () => {
+    await mkdir(join(tempDir, 'visible-skill'), { recursive: true });
+    await mkdir(join(tempDir, '.hidden-dir'), { recursive: true });
+    const result = await listCanonicalSkills(tempDir);
+    expect(result).toEqual(['visible-skill']);
+  });
+
+  it('returns empty array for nonexistent directory', async () => {
+    const result = await listCanonicalSkills('/nonexistent/path/nowhere');
+    expect(result).toEqual([]);
   });
 });

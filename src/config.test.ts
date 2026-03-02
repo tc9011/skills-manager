@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { readConfig, writeConfig } from './config.js';
+import { readConfig, writeConfig, getConfigPath } from './config.js';
 
 describe('config', () => {
   let tmpDir: string;
@@ -67,6 +67,28 @@ describe('config', () => {
       writeConfig({ lastLinkedAgents: ['amp'] }, configPath);
       const raw = readFileSync(configPath, 'utf-8');
       expect(JSON.parse(raw)).toEqual({ lastLinkedAgents: ['amp'] });
+    });
+  });
+
+  describe('getConfigPath', () => {
+    const originalEnv = process.env;
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it('uses XDG_CONFIG_HOME when set', () => {
+      process.env = { ...originalEnv, XDG_CONFIG_HOME: '/tmp/custom-xdg' };
+      const path = getConfigPath();
+      expect(path).toBe(join('/tmp/custom-xdg', 'skills-manager', 'config.json'));
+    });
+
+    it('falls back to ~/.config when XDG_CONFIG_HOME not set', () => {
+      process.env = { ...originalEnv };
+      delete process.env.XDG_CONFIG_HOME;
+      const path = getConfigPath();
+      const home = process.env.HOME!;
+      expect(path).toBe(join(home, '.config', 'skills-manager', 'config.json'));
     });
   });
 });

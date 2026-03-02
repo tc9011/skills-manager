@@ -55,4 +55,46 @@ describe('pullCommand', () => {
     expect(pullSkills).toHaveBeenCalledOnce();
     expect(buildRemoteUrl).toHaveBeenCalledWith('owner/repo');
   });
+
+  it('throws CliError when pullSkills throws', async () => {
+    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(buildRemoteUrl).mockReturnValue('https://github.com/owner/repo.git');
+    vi.mocked(pullSkills).mockRejectedValue(new Error('network error'));
+
+    const { pullCommand } = await import('./pull.js');
+    await expect(pullCommand({ repo: 'owner/repo' })).rejects.toThrow(CliError);
+  });
+
+  it('skips link when --skip-link flag is set', async () => {
+    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(buildRemoteUrl).mockReturnValue('https://github.com/owner/repo.git');
+    vi.mocked(pullSkills).mockResolvedValue({ cloned: false, pulled: true });
+
+    const linkMod = await import('./link.js');
+    vi.mocked(linkMod.linkCommand).mockResolvedValue(undefined);
+
+    const { pullCommand } = await import('./pull.js');
+    await pullCommand({ repo: 'owner/repo', skipLink: true });
+
+    expect(linkMod.linkCommand).not.toHaveBeenCalled();
+  });
+
+  it('uses existing remote when no --repo option', async () => {
+    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/existing/repo.git');
+    vi.mocked(pullSkills).mockResolvedValue({ cloned: false, pulled: true });
+
+    const linkMod = await import('./link.js');
+    vi.mocked(linkMod.linkCommand).mockResolvedValue(undefined);
+
+    const { pullCommand } = await import('./pull.js');
+    await pullCommand({});
+
+    expect(pullSkills).toHaveBeenCalledWith(
+      expect.any(String),
+      'https://github.com/existing/repo.git',
+      'ghp_test_token',
+    );
+    expect(buildRemoteUrl).not.toHaveBeenCalled();
+  });
 });
