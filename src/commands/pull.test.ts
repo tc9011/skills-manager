@@ -1,7 +1,7 @@
 // src/commands/pull.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CliError } from '../errors.js';
-import { getGitHubToken } from '../auth.js';
+import { ensureGitHubToken } from '../auth.js';
 import { pullSkills, buildRemoteUrl, getRepoRemoteUrl } from '../git-ops.js';
 
 // Mock @clack/prompts
@@ -14,7 +14,7 @@ vi.mock('@clack/prompts', () => ({
 
 // Mock auth — return null to test the "no repo and no remote" path
 vi.mock('../auth.js', () => ({
-  getGitHubToken: vi.fn(() => null),
+  ensureGitHubToken: vi.fn(async () => null),
 }));
 
 // Mock git-ops — getRepoRemoteUrl returns null (no existing remote)
@@ -42,7 +42,7 @@ describe('pullCommand', () => {
   });
 
   it('pulls skills and runs link on happy path', async () => {
-    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
+    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
     vi.mocked(buildRemoteUrl).mockReturnValue('https://github.com/owner/repo.git');
     vi.mocked(pullSkills).mockResolvedValue({ cloned: true, pulled: false });
 

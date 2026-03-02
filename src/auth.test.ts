@@ -1,13 +1,25 @@
 // src/auth.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getGitHubToken } from './auth.js';
+import { getGitHubToken, ensureGitHubToken } from './auth.js';
+import { CliError } from './errors.js';
 
 vi.mock('node:child_process', () => ({
   execSync: vi.fn(),
+  spawnSync: vi.fn(),
 }));
 
-import { execSync } from 'node:child_process';
+vi.mock('@clack/prompts', () => ({
+  select: vi.fn(),
+  isCancel: vi.fn(() => false),
+  cancel: vi.fn(),
+  note: vi.fn(),
+  log: { step: vi.fn() },
+}));
+
+import { execSync, spawnSync } from 'node:child_process';
+import * as p from '@clack/prompts';
 const mockExecSync = vi.mocked(execSync);
+const mockSpawnSync = vi.mocked(spawnSync);
 
 describe('getGitHubToken', () => {
   const originalEnv = process.env;
@@ -46,3 +58,50 @@ describe('getGitHubToken', () => {
     expect(token).toBeNull();
   });
 });
+
+describe('ensureGitHubToken', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...originalEnv };
+    delete process.env.GITHUB_TOKEN;
+    delete process.env.GH_TOKEN;
+  });
+
+  it('returns existing token without prompting', async () => {
+    mockExecSync.mockReturnValue('ghp_existing\n');
+    const token = await ensureGitHubToken();
+    expect(token).toBe('ghp_existing');
+    expect(p.select).not.toHaveBeenCalled();
+  });
+
+  it('runs gh auth login when user selects gh', async () => {
+    // First call: no token. After spawnSync: token available.
+    mockExecSync
+      .mockImplementationOnce(() => { throw new Error('no gh'); })
+      .mockReturnValueOnce('ghp_new_token\n');
+    vi.mocked(p.select).mockResolvedValue('gh');
+    mockSpawnSync.mockReturnValue({ status: 0 } as any);
+
+    const token = await ensureGitHubToken();
+    expect(token).toBe('ghp_new_token');
+    expect(mockSpawnSync).toHaveBeenCalledWith('gh', ['auth', 'login'], { stdio: 'inherit' });
+  });
+
+  it('throws CliError when user selects env', async () => {
+    mockExecSync.mockImplementation(() => { throw new Error('no gh'); });
+    vi.mocked(p.select).mockResolvedValue('env');
+
+    await expect(ensureGitHubToken()).rejects.toThrow(CliError);
+    expect(p.note).toHaveBeenCalled();
+  });
+
+  it('throws CliError when user cancels', async () => {
+    mockExecSync.mockImplementation(() => { throw new Error('no gh'); });
+    vi.mocked(p.isCancel).mockReturnValue(true);
+    vi.mocked(p.select).mockResolvedValue(Symbol('cancel') as any);
+
+    await expect(ensureGitHubToken()).rejects.toThrow(CliError);
+  });
+}); 

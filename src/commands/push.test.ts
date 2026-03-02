@@ -1,6 +1,6 @@
 // src/commands/push.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getGitHubToken } from '../auth.js';
+import { ensureGitHubToken } from '../auth.js';
 import { pushSkills, getRepoRemoteUrl } from '../git-ops.js';
 
 vi.mock('@clack/prompts', () => ({
@@ -12,7 +12,7 @@ vi.mock('@clack/prompts', () => ({
 }));
 
 vi.mock('../auth.js', () => ({
-  getGitHubToken: vi.fn(),
+  ensureGitHubToken: vi.fn(),
 }));
 
 vi.mock('../git-ops.js', () => ({
@@ -31,7 +31,7 @@ describe('push command logic', () => {
   });
 
   it('pushes skills on happy path', async () => {
-    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
+    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
     vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/user/repo.git');
     vi.mocked(pushSkills).mockResolvedValue({ committed: true, pushed: true });
 
@@ -45,7 +45,7 @@ describe('push command logic', () => {
 
   it('shows warning for suspicious files', async () => {
     const prompts = await import('@clack/prompts');
-    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
+    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
     vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/user/repo.git');
     vi.mocked(pushSkills).mockResolvedValue({
       committed: true,

@@ -1,5 +1,5 @@
 import { CANONICAL_SKILLS_DIR } from '../agents.js';
-import { getGitHubToken } from '../auth.js';
+import { ensureGitHubToken } from '../auth.js';
 import { CliError } from '../errors.js';
 import { pullSkills, buildRemoteUrl, getRepoRemoteUrl } from '../git-ops.js';
 import { linkCommand } from './link.js';
@@ -8,7 +8,7 @@ import * as p from '@clack/prompts';
 export async function pullCommand(options: { repo?: string; skipLink?: boolean }): Promise<void> {
   p.intro('skills-manager pull');
 
-  const token = getGitHubToken();
+  const token = await ensureGitHubToken();
 
   // Determine remote URL
   let remoteUrl: string;
