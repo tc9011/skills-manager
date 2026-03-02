@@ -254,6 +254,23 @@ src/
     └── link.ts           # Link handler (interactive multiselect)
 ```
 
+### Releasing
+
+Releases are fully automated with [semantic-release](https://github.com/semantic-release/semantic-release). Just use [Conventional Commits](https://www.conventionalcommits.org/) and push to `main`:
+
+| Commit prefix | Version bump | Example |
+|---|---|---|
+| `fix:` | Patch (`0.1.0` → `0.1.1`) | `fix: handle missing config` |
+| `feat:` | Minor (`0.1.0` → `0.2.0`) | `feat: add export command` |
+| `feat!:` or `BREAKING CHANGE:` | Major (`0.1.0` → `1.0.0`) | `feat!: drop Node 18 support` |
+
+The CI pipeline will automatically:
+1. Analyze commits since last release
+2. Determine version bump
+3. Update `package.json` + `CHANGELOG.md`
+4. Publish to npm
+5. Create a GitHub Release with notes
+
 ## License
 
 [MIT](./LICENSE)

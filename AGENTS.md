@@ -139,8 +139,8 @@ Commit messages follow Conventional Commits:
 ## CI/CD
 
 - **CI** (`ci.yml`): Runs on push/PR to main/master → lint → test:coverage → build (Node 22)
-- **Publish** (`publish.yml`): Runs on GitHub Release → lint → test → build → `npm publish` via OIDC Trusted Publishers (no NPM_TOKEN needed)
-- **Package**: `@tc9011/skills-manager` on npm, published with provenance
+- **Release** (`publish.yml`): Runs on push to main/master → lint → test → build → `semantic-release` (auto version bump + npm publish via OIDC + GitHub Release + CHANGELOG.md)
+- **Package**: `@tc9011/skills-manager` on npm, published with provenance via Trusted Publishers
 
 ## Common Tasks
 
@@ -167,6 +167,14 @@ npm link && skills-manager push        # simulate global install
 
 ### Publishing a new version
 
-1. Bump version in `package.json`
-2. Push to GitHub
-3. Create a GitHub Release (tag `vX.Y.Z`) — triggers automatic publish via OIDC
+Publishing is fully automated via [semantic-release](https://github.com/semantic-release/semantic-release):
+
+1. Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, etc.)
+2. Push to `main` (or merge a PR)
+3. GitHub Actions runs `semantic-release` which:
+   - Analyzes commit messages since last release
+   - Determines version bump (patch/minor/major)
+   - Updates `package.json` version + `CHANGELOG.md`
+   - Publishes to npm via OIDC Trusted Publishers
+   - Creates a GitHub Release with auto-generated notes
+   - Commits version bump back to the repo

@@ -1,18 +1,25 @@
-name: Publish to npm
+name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main, master]
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  publish:
+  release:
+    name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -25,4 +32,10 @@ jobs:
       - run: npm test
       - run: npm run build
 
-      - run: npm publish --access public
+      - name: Verify provenance attestations
+        run: npm audit signatures
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
