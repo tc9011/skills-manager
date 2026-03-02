@@ -83,6 +83,21 @@ async function getCurrentBranch(git: SimpleGit): Promise<string> {
 }
 
 /**
+ * Detect the remote's default branch (e.g. main vs master).
+ * Falls back to the local branch name if remote info unavailable.
+ */
+async function getRemoteDefaultBranch(git: SimpleGit): Promise<string> {
+  try {
+    const raw = await git.raw(['remote', 'show', 'origin']);
+    const match = raw.match(/HEAD branch:\s*(\S+)/);
+    if (match?.[1]) return match[1];
+  } catch {
+    // remote show may fail without network; ignore
+  }
+  return getCurrentBranch(git);
+}
+
+/**
  * Push: stage all changes, commit with timestamp, push to remote.
  * Uses token transiently via in-memory authenticated URL — never persisted to .git/config.
  */
@@ -157,9 +172,9 @@ export async function pullSkills(
     return { cloned: true, pulled: false };
   }
 
-  // Pull latest — temporarily set auth URL if needed
+  // Pull latest — use remote's default branch (handles main vs master)
   const git = simpleGit(dir);
-  const branch = await getCurrentBranch(git);
+  const branch = await getRemoteDefaultBranch(git);
 
   // If HEAD is detached, checkout the target branch first
   const localBranch = await git.branchLocal();
