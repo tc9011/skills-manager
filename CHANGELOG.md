@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/tc9011/skills-manager/compare/v0.3.0...v0.4.0) (2026-03-02)
+
+
+### Features
+
+* add skill selection prompt for project-level link ([155b378](https://github.com/tc9011/skills-manager/commit/155b3786e65c78d42e3b0477743583e7d6dee3ba))
+
 # [0.3.0](https://github.com/tc9011/skills-manager/compare/v0.2.1...v0.3.0) (2026-03-02)
 
 
