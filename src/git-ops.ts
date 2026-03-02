@@ -73,7 +73,13 @@ export async function getRepoRemoteUrl(dir: string): Promise<string | null> {
  */
 async function getCurrentBranch(git: SimpleGit): Promise<string> {
   const branch = await git.branchLocal();
-  return branch.current || 'main';
+  const current = branch.current || '';
+  // Detached HEAD: simple-git returns a commit hash or empty string.
+  // A valid branch name won't be a 7-40 char hex string.
+  if (!current || /^[0-9a-f]{7,40}$/.test(current)) {
+    return 'main';
+  }
+  return current;
 }
 
 /**
@@ -154,6 +160,12 @@ export async function pullSkills(
   // Pull latest — temporarily set auth URL if needed
   const git = simpleGit(dir);
   const branch = await getCurrentBranch(git);
+
+  // If HEAD is detached, checkout the target branch first
+  const localBranch = await git.branchLocal();
+  if (!localBranch.current || /^[0-9a-f]{7,40}$/.test(localBranch.current)) {
+    await git.checkout(branch);
+  }
 
   if (token) {
     const remotes = await git.getRemotes(true);
