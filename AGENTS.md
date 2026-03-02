@@ -16,12 +16,12 @@ src/
 ├── auth.ts               # GitHub token resolution (gh CLI → env vars → interactive)
 ├── config.ts             # XDG-compliant config persistence (~/.config/skills-manager/)
 ├── lockfile.ts           # .skill-lock.json reader (READ ONLY)
-├── linker.ts             # Symlink creation (relative paths)
+├── linker.ts             # Symlink creation (relative) + project copy/link (absolute)
 ├── git-ops.ts            # Git push/pull via simple-git + repo init/remote setup
 └── commands/
     ├── push.ts           # Push handler (auto git-init + remote prompt)
     ├── pull.ts           # Pull handler (auto-runs link)
-    └── link.ts           # Link handler (interactive multiselect, remembers selection)
+    └── link.ts           # Link handler (interactive multiselect, remembers selection, --project mode)
 ```
 
 ### Key Constants (`src/agents.ts`)
@@ -38,6 +38,7 @@ export const SKILL_LOCK_PATH = join(homedir(), '.agents', '.skill-lock.json');
 push:  ~/.agents/ → git add → git commit → git push origin <branch>
 pull:  git pull --rebase → auto-run link
 link:  read .skill-lock.json → detect local agents → multiselect → create relative symlinks
+link --project: read .skill-lock.json → select agents → choose copy/symlink → group by projectPath → copy/link to CWD
 ```
 
 ## Critical Constraints
@@ -50,9 +51,9 @@ The lock file at `~/.agents/.skill-lock.json` is owned by `vercel-labs/skills`. 
 
 The entire `~/.agents/` directory is the git repository — not `~/.agents/skills/`. This ensures both `.skill-lock.json` and the `skills/` directory are versioned together.
 
-### Symlinks must be relative
+### Symlink path conventions
 
-All symlinks from agent directories to `~/.agents/skills/` must use relative paths, matching the convention set by `vercel-labs/skills`. Use `computeRelativeSymlinkTarget()` from `linker.ts`.
+Global mode (`link`) uses relative symlinks via `computeRelativeSymlinkTarget()` from `linker.ts`, matching the convention set by `vercel-labs/skills`. Project mode (`link --project`) uses absolute symlinks via `createProjectSymlinks()` (or direct copy via `copySkills()`) because CWD and `~/.agents/skills/` are in unrelated directory trees.
 
 ### Agent registry must match vercel-labs/skills
 
@@ -147,7 +148,7 @@ Commit messages follow Conventional Commits:
 ### Adding a new agent
 
 1. Add ID to `AgentId` union in `agents.ts`
-2. Add entry to `agentRegistry` with correct paths and `universal` flag
+2. Add entry to `agentRegistry` with correct `globalPath`, `projectPath`, and `universal` flag
 3. If it uses an env var, add resolution logic in `getAgentGlobalPath()`
 4. Add test in `agents.test.ts`
 

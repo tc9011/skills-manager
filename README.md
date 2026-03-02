@@ -22,6 +22,7 @@ A CLI companion to [vercel-labs/skills](https://github.com/vercel-labs/skills) �
 - **Push** — commit and push `~/.agents/` (skills + lock file) to GitHub
 - **Pull** — clone or pull your skills on any machine
 - **Link** — read `.skill-lock.json` and create symlinks to every agent you use
+- **Project Link** — link or copy skills directly to your current project directory for localized development
 
 > **Note:** This tool reads `.skill-lock.json` but never modifies it — that file is owned by `vercel-labs/skills`.
 
@@ -48,6 +49,9 @@ skills-manager pull --repo owner/my-skills
 
 # 3. Re-link skills to agents (auto-runs after pull)
 skills-manager link
+
+# 4. Link skills to current project directory
+skills-manager link --project
 ```
 
 On first run, `push` and `pull` will interactively set up a git repo and remote if `~/.agents/` isn't already one.
@@ -94,6 +98,7 @@ skills-manager link --agents cursor opencode claude-code
 | Option | Description |
 |--------|-------------|
 | `-a, --agents <ids...>` | Agent IDs to link (default: from lock file) |
+| `-p, --project` | Link skills to project directory (CWD) instead of global paths |
 
 An interactive multiselect prompt lets you pick which agents to link. Only agents with local directories are pre-selected. Your selection is remembered for next time.
 
@@ -103,6 +108,22 @@ An interactive multiselect prompt lets you pick which agents to link. Only agent
 ~/.config/opencode/skills/my-skill → ../../../.agents/skills/my-skill   (relative)
 ~/.claude/skills/my-skill          → ../../.agents/skills/my-skill      (relative)
 ```
+
+**Project Mode:**
+
+When using `--project` (or `-p`), you will be prompted to choose between copying files (default) or creating symlinks. Skills are placed in CWD-relative paths based on each agent's configuration.
+
+Example project structure after `link --project`:
+```
+./project/
+├── .agents/skills/my-skill       ← shared by universal agents (copied or symlinked)
+├── .claude/skills/my-skill       ← claude-code specific
+├── .cursor/skills/my-skill       → ~/.agents/skills/my-skill (absolute symlink)
+└── .trae/skills/my-skill         ← trae specific
+```
+
+- **Deduplication:** Agents sharing the same project path only trigger one copy/link operation.
+- **Copy vs Symlink:** Copying creates independent files (recommended for portability). Symlinking points back to `~/.agents/skills/` using absolute paths.
 
 ## Authentication
 
@@ -201,6 +222,12 @@ skills-manager link reads .skill-lock.json → creates relative symlinks:
 ~/.config/opencode/skills/my-skill → ../../../.agents/skills/my-skill
 ```
 
+```
+skills-manager link --project reads .skill-lock.json → copies/symlinks to CWD:
+
+./my-project/.agents/skills/my-skill    ← copied from ~/.agents/skills/
+./my-project/.claude/skills/my-skill    ← copied from ~/.agents/skills/
+```
 ## Contributing
 
 ### Setup
@@ -246,7 +273,7 @@ src/
 ├── auth.ts               # GitHub token resolution
 ├── config.ts             # XDG-compliant config persistence
 ├── lockfile.ts           # Read-only .skill-lock.json parser
-├── linker.ts             # Relative symlink creation
+├── linker.ts             # Symlink creation + project-level copy/link
 ├── git-ops.ts            # Git push/pull via simple-git
 └── commands/
     ├── push.ts           # Push handler
