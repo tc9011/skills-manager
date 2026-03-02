@@ -1,4 +1,3 @@
-// src/lockfile.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readLockFile, getLastSelectedAgents } from './lockfile.js';
 import type { AgentId } from './agents.js';
@@ -17,20 +16,22 @@ describe('readLockFile', () => {
   });
 
   it('parses valid lock file', async () => {
-    mockReadFile.mockResolvedValue(JSON.stringify({
-      version: 3,
-      skills: {
-        'my-skill': {
-          source: 'user/repo',
-          sourceType: 'github',
-          sourceUrl: 'https://github.com/user/repo.git',
-          skillFolderHash: 'abc123',
-          installedAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: '2026-01-01T00:00:00.000Z',
+    mockReadFile.mockResolvedValue(
+      JSON.stringify({
+        version: 3,
+        skills: {
+          'my-skill': {
+            source: 'user/repo',
+            sourceType: 'github',
+            sourceUrl: 'https://github.com/user/repo.git',
+            skillFolderHash: 'abc123',
+            installedAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
         },
-      },
-      lastSelectedAgents: ['opencode', 'claude-code'],
-    }));
+        lastSelectedAgents: ['opencode', 'claude-code'],
+      })
+    );
 
     const result = await readLockFile('/fake/path');
     expect(result).toBeDefined();
@@ -60,11 +61,13 @@ describe('getLastSelectedAgents', () => {
   });
 
   it('returns lastSelectedAgents filtered to valid AgentIds', async () => {
-    mockReadFile.mockResolvedValue(JSON.stringify({
-      version: 3,
-      skills: {},
-      lastSelectedAgents: ['opencode', 'claude-code', 'nonexistent-agent'],
-    }));
+    mockReadFile.mockResolvedValue(
+      JSON.stringify({
+        version: 3,
+        skills: {},
+        lastSelectedAgents: ['opencode', 'claude-code', 'nonexistent-agent'],
+      })
+    );
 
     const agents = await getLastSelectedAgents('/fake/path');
     expect(agents).toEqual(['opencode', 'claude-code']);
@@ -80,10 +83,12 @@ describe('getLastSelectedAgents', () => {
   });
 
   it('returns empty array when lastSelectedAgents is absent', async () => {
-    mockReadFile.mockResolvedValue(JSON.stringify({
-      version: 3,
-      skills: {},
-    }));
+    mockReadFile.mockResolvedValue(
+      JSON.stringify({
+        version: 3,
+        skills: {},
+      })
+    );
 
     const agents = await getLastSelectedAgents('/fake/path');
     expect(agents).toEqual([]);
