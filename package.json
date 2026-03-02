@@ -1,56 +1,29 @@
 {
-  "name": "skill-sync",
-  "private": true,
-  "version": "0.2.0",
+  "name": "skills-manager",
+  "version": "0.1.0",
+  "description": "Backup and restore AI agent skills to GitHub",
   "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "dev:tauri": "tauri dev",
-    "build": "tsc && vite build",
-    "build:tauri": "tauri build",
-    "build:ci": "tauri build --ci",
-    "preview": "vite preview",
-    "tauri": "tauri",
-    "check": "tsc --noEmit",
-    "check:rust": "cd src-tauri && cargo check",
-    "check:all": "pnpm check && pnpm check:rust",
-    "lint": "tsc --noEmit",
-    "clean": "rm -rf dist src-tauri/target",
-    "clean:rust": "cd src-tauri && cargo clean"
+  "bin": {
+    "skills-manager": "./dist/index.js"
   },
-  "dependencies": {
-    "@radix-ui/react-checkbox": "^1.3.3",
-    "@radix-ui/react-dialog": "^1.1.15",
-    "@radix-ui/react-label": "^2.1.8",
-    "@radix-ui/react-radio-group": "^1.3.8",
-    "@radix-ui/react-scroll-area": "^1.2.10",
-    "@radix-ui/react-separator": "^1.1.8",
-    "@radix-ui/react-slot": "^1.2.4",
-    "@radix-ui/react-tabs": "^1.1.13",
-    "@radix-ui/react-toast": "^1.2.15",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-dialog": "^2.6.0",
-    "@tauri-apps/plugin-fs": "~2.4.5",
-    "@tauri-apps/plugin-opener": "^2",
-    "@tauri-apps/plugin-shell": "~2.3.5",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.563.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-markdown": "^10.1.0",
-    "sonner": "^2.0.7",
-    "tailwind-merge": "^3.4.0"
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.18",
-    "@tauri-apps/cli": "^2",
-    "@types/node": "^25.2.1",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^4.6.0",
-    "tailwindcss": "^4.1.18",
-    "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "vitest": "^3.0.0",
+    "@types/node": "^22.0.0"
+  },
+  "dependencies": {
+    "commander": "^13.0.0",
+    "simple-git": "^3.27.0",
+    "@clack/prompts": "^0.10.0"
   }
 }
