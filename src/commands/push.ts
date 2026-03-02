@@ -1,6 +1,7 @@
 // src/commands/push.ts
 import { CANONICAL_SKILLS_DIR } from '../agents.js';
 import { getGitHubToken } from '../auth.js';
+import { CliError } from '../errors.js';
 import { pushSkills, getRepoRemoteUrl } from '../git-ops.js';
 import * as p from '@clack/prompts';
 
@@ -11,14 +12,14 @@ export async function pushCommand(options: { message?: string }): Promise<void> 
   const token = getGitHubToken();
   if (!token) {
     p.cancel('No GitHub authentication found. Run `gh auth login` or set GITHUB_TOKEN.');
-    process.exit(1);
+    throw new CliError('No GitHub authentication found.');
   }
 
   // 2. Check canonical dir has a remote
   const remote = await getRepoRemoteUrl(CANONICAL_SKILLS_DIR);
   if (!remote) {
     p.cancel(`No git remote found in ${CANONICAL_SKILLS_DIR}. Initialize with git first.`);
-    process.exit(1);
+    throw new CliError(`No git remote found in ${CANONICAL_SKILLS_DIR}.`);
   }
 
   // 3. Push
@@ -26,7 +27,7 @@ export async function pushCommand(options: { message?: string }): Promise<void> 
   spinner.start('Pushing skills to GitHub...');
 
   try {
-    const result = await pushSkills(CANONICAL_SKILLS_DIR, options.message);
+    const result = await pushSkills(CANONICAL_SKILLS_DIR, options.message, token);
     spinner.stop(
       result.committed
         ? 'Skills pushed successfully!'
@@ -35,7 +36,7 @@ export async function pushCommand(options: { message?: string }): Promise<void> 
   } catch (err) {
     spinner.stop('Push failed.');
     p.cancel(String(err));
-    process.exit(1);
+    throw new CliError(String(err));
   }
 
   p.outro('Done!');

@@ -1,6 +1,7 @@
 import { dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { CANONICAL_SKILLS_DIR, SKILL_LOCK_PATH, agentRegistry, getAgentGlobalPath, type AgentId } from '../agents.js';
+import { CliError } from '../errors.js';
 import { getLastSelectedAgents } from '../lockfile.js';
 import { createSkillSymlinks, listCanonicalSkills } from '../linker.js';
 import * as p from '@clack/prompts';
@@ -11,12 +12,18 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
   // 1. Read lock file for lastSelectedAgents
   let agents: AgentId[];
   if (options.agents?.length) {
+    const validIds = new Set(Object.keys(agentRegistry));
+    const invalid = options.agents.filter(id => !validIds.has(id));
+    if (invalid.length > 0) {
+      p.cancel(`Unknown agent ID(s): ${invalid.join(', ')}. Run with no --agents to see available IDs.`);
+      throw new CliError(`Unknown agent ID(s): ${invalid.join(', ')}`);
+    }
     agents = options.agents as AgentId[];
   } else {
     agents = await getLastSelectedAgents(SKILL_LOCK_PATH);
     if (agents.length === 0) {
       p.cancel('No lastSelectedAgents found in .skill-lock.json. Use --agents to specify.');
-      process.exit(1);
+      throw new CliError('No lastSelectedAgents found in .skill-lock.json.');
     }
   }
 
@@ -47,7 +54,7 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
   const skills = await listCanonicalSkills(CANONICAL_SKILLS_DIR);
   if (skills.length === 0) {
     p.cancel(`No skills found in ${CANONICAL_SKILLS_DIR}.`);
-    process.exit(1);
+    throw new CliError(`No skills found in ${CANONICAL_SKILLS_DIR}.`);
   }
 
   // 4. Create symlinks for each agent
@@ -62,10 +69,14 @@ export async function linkCommand(options: { agents?: string[] }): Promise<void>
     try {
       const results = await createSkillSymlinks(CANONICAL_SKILLS_DIR, globalPath, skills);
       const created = results.filter(r => r.status === 'created').length;
+      const recreated = results.filter(r => r.status === 'recreated').length;
       const existed = results.filter(r => r.status === 'exists').length;
       const skipped = results.filter(r => r.status === 'skipped').length;
 
-      spinner.stop(`${agentRegistry[agentId].displayName}: ${created} linked, ${existed} existing, ${skipped} skipped`);
+      const parts = [`${created} linked`];
+      if (recreated > 0) parts.push(`${recreated} recreated`);
+      parts.push(`${existed} existing`, `${skipped} skipped`);
+      spinner.stop(`${agentRegistry[agentId].displayName}: ${parts.join(', ')}`);
       linkedAgents.push(agentId);
     } catch (err) {
       spinner.stop(`${agentRegistry[agentId].displayName}: failed`);

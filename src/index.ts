@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
+import { CliError } from './errors.js';
 import { pushCommand } from './commands/push.js';
 import { pullCommand } from './commands/pull.js';
 import { linkCommand } from './commands/link.js';
@@ -30,4 +31,12 @@ program
   .option('-a, --agents <agents...>', 'Agent IDs to link (default: from .skill-lock.json)')
   .action(linkCommand);
 
-program.parse();
+
+// Catch CliError from command handlers and exit with code 1
+program.parseAsync().catch((err: unknown) => {
+  if (err instanceof CliError) {
+    process.exit(1);
+  }
+  console.error(err);
+  process.exit(1);
+});
