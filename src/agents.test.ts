@@ -1,4 +1,3 @@
-// src/agents.test.ts
 import { describe, it, expect } from 'vitest';
 import { agentRegistry, getAgentGlobalPath, type AgentId } from './agents.js';
 
@@ -9,9 +8,18 @@ describe('agentRegistry', () => {
 
   it('includes all user lastSelectedAgents', () => {
     const required: AgentId[] = [
-      'amp', 'cline', 'codex', 'cursor', 'gemini-cli',
-      'github-copilot', 'kimi-cli', 'opencode',
-      'antigravity', 'trae', 'pi', 'claude-code',
+      'amp',
+      'cline',
+      'codex',
+      'cursor',
+      'gemini-cli',
+      'github-copilot',
+      'kimi-cli',
+      'opencode',
+      'antigravity',
+      'trae',
+      'pi',
+      'claude-code',
     ];
     for (const agent of required) {
       expect(agentRegistry[agent]).toBeDefined();
@@ -19,8 +27,7 @@ describe('agentRegistry', () => {
   });
 
   it('universal agents share .agents/skills project path', () => {
-    const universals = Object.entries(agentRegistry)
-      .filter(([, v]) => v.universal);
+    const universals = Object.entries(agentRegistry).filter(([, v]) => v.universal);
     for (const [, agent] of universals) {
       expect(agent.projectPath).toBe('.agents/skills');
     }
@@ -42,7 +49,6 @@ describe('getAgentGlobalPath', () => {
 
   it('resolves opencode with XDG_CONFIG_HOME fallback', () => {
     const home = process.env.HOME!;
-    // Without XDG_CONFIG_HOME set, falls back to ~/.config
     const path = getAgentGlobalPath('opencode');
     expect(path).toBe(`${home}/.config/opencode/skills`);
   });
