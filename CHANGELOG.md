@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/tc9011/skills-manager/compare/v0.4.0...v0.4.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* fetch remote refs before checkout to handle missing local branches ([2f18f4e](https://github.com/tc9011/skills-manager/commit/2f18f4e5f1f75496478b079529d968ed997a850a))
+
 # [0.4.0](https://github.com/tc9011/skills-manager/compare/v0.3.0...v0.4.0) (2026-03-02)
 
 
