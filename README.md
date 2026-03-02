@@ -111,7 +111,11 @@ An interactive multiselect prompt lets you pick which agents to link. Only agent
 
 **Project Mode:**
 
-When using `--project` (or `-p`), you will be prompted to choose between copying files (default) or creating symlinks. Skills are placed in CWD-relative paths based on each agent's configuration.
+When using `--project` (or `-p`), you'll go through three interactive prompts:
+
+1. **Select agents** — choose which agents to set up project-level skills for
+2. **Select skills** — choose which skills to link (all pre-selected by default)
+3. **Copy or symlink** — copy files (default, recommended) or create absolute symlinks
 
 Example project structure after `link --project`:
 ```
@@ -122,6 +126,7 @@ Example project structure after `link --project`:
 └── .trae/skills/my-skill         ← trae specific
 ```
 
+- **Skill Selection:** Only the skills you pick are copied/linked — you don't have to include everything.
 - **Deduplication:** Agents sharing the same project path only trigger one copy/link operation.
 - **Copy vs Symlink:** Copying creates independent files (recommended for portability). Symlinking points back to `~/.agents/skills/` using absolute paths.
 
@@ -223,7 +228,7 @@ skills-manager link reads .skill-lock.json → creates relative symlinks:
 ```
 
 ```
-skills-manager link --project reads .skill-lock.json → copies/symlinks to CWD:
+skills-manager link --project reads .skill-lock.json → select agents → select skills → copies/symlinks to CWD:
 
 ./my-project/.agents/skills/my-skill    ← copied from ~/.agents/skills/
 ./my-project/.claude/skills/my-skill    ← copied from ~/.agents/skills/

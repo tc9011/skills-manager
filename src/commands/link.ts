@@ -58,7 +58,30 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
     throw new CliError(`No skills found in ${CANONICAL_SKILLS_DIR}.`);
   }
 
-  // 4. Link/copy skills
+  // 4. In project mode, let user pick which skills to link
+  let selectedSkills = skills;
+  if (options.project) {
+    const skillChoices = skills.map(name => ({
+      value: name,
+      label: name,
+    }));
+
+    const pickedSkills = await p.multiselect<string>({
+      message: 'Select skills to link:',
+      options: skillChoices,
+      initialValues: skills,
+      required: false,
+    });
+
+    if (p.isCancel(pickedSkills) || !pickedSkills.length) {
+      p.cancel('No skills selected.');
+      return;
+    }
+
+    selectedSkills = pickedSkills as string[];
+  }
+
+  // 5. Link/copy skills
   const linkedAgents: string[] = [];
   const skippedAgents: { id: string; reason: string }[] = [];
 
@@ -66,7 +89,6 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
   const selectedAgents = (selected as string[]).filter(
     (id): id is AgentId => validSelected.has(id)
   );
-
   if (options.project) {
     // Project mode: prompt for copy vs symlink, group by projectPath
     const mode = await p.select({
@@ -93,7 +115,7 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
 
       try {
         if (mode === 'copy') {
-          const results = await copySkills(CANONICAL_SKILLS_DIR, targetDir, skills);
+          const results = await copySkills(CANONICAL_SKILLS_DIR, targetDir, selectedSkills);
           const copied = results.filter(r => r.status === 'copied').length;
           const overwritten = results.filter(r => r.status === 'overwritten').length;
           const skipped = results.filter(r => r.status === 'skipped').length;
@@ -102,7 +124,7 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
           parts.push(`${skipped} skipped`);
           spinner.stop(`${projectPath}: ${parts.join(', ')}`);
         } else {
-          const results = await createProjectSymlinks(CANONICAL_SKILLS_DIR, targetDir, skills);
+          const results = await createProjectSymlinks(CANONICAL_SKILLS_DIR, targetDir, selectedSkills);
           const created = results.filter(r => r.status === 'created').length;
           const recreated = results.filter(r => r.status === 'recreated').length;
           const existed = results.filter(r => r.status === 'exists').length;
@@ -146,7 +168,7 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
     }
   }
 
-  // 5. Save selection for next time
+  // 6. Save selection for next time
   if (linkedAgents.length > 0) {
     writeConfig({ lastLinkedAgents: selectedAgents });
   }
