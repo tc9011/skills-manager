@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/tc9011/skills-manager/compare/v0.4.1...v0.5.0) (2026-03-03)
+
+
+### Features
+
+* reorder project link prompts to skills → mode → agents and remove default selection ([5c42e8d](https://github.com/tc9011/skills-manager/commit/5c42e8d5678b2ebd3f080aa181204ece35eaed6b))
+
 ## [0.4.1](https://github.com/tc9011/skills-manager/compare/v0.4.0...v0.4.1) (2026-03-02)
 
 
