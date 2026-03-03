@@ -113,9 +113,9 @@ An interactive multiselect prompt lets you pick which agents to link. Only agent
 
 When using `--project` (or `-p`), you'll go through three interactive prompts:
 
-1. **Select agents** — choose which agents to set up project-level skills for
-2. **Select skills** — choose which skills to link (all pre-selected by default)
-3. **Copy or symlink** — copy files (default, recommended) or create absolute symlinks
+1. **Select skills** — choose which skills to link (none pre-selected)
+2. **Copy or symlink** — copy files (default, recommended) or create absolute symlinks
+3. **Select agents** — choose which agents to set up project-level skills for
 
 Example project structure after `link --project`:
 ```
@@ -228,7 +228,7 @@ skills-manager link reads .skill-lock.json → creates relative symlinks:
 ```
 
 ```
-skills-manager link --project reads .skill-lock.json → select agents → select skills → copies/symlinks to CWD:
+skills-manager link --project reads .skill-lock.json → select skills → choose copy/symlink → select agents → copies/symlinks to CWD:
 
 ./my-project/.agents/skills/my-skill    ← copied from ~/.agents/skills/
 ./my-project/.claude/skills/my-skill    ← copied from ~/.agents/skills/

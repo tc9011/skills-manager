@@ -28,39 +28,21 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
     }
   }
 
-  // 2. Interactive confirmation
-  const agentChoices = agents.map(id => {
-    const globalPath = getAgentGlobalPath(id);
-    const dirExists = existsSync(globalPath);
-    return {
-      value: id as string,
-      label: `${agentRegistry[id].displayName} (${id})`,
-      hint: dirExists ? globalPath : `${globalPath} — directory will be created`,
-    };
-  });
-
-  const selected = await p.multiselect<string>({
-    message: 'Select agents to link skills to:',
-    options: agentChoices,
-    initialValues: computeInitialValues(agents, agentChoices),
-    required: false,
-  });
-
-  if (p.isCancel(selected) || !selected.length) {
-    p.cancel('No agents selected.');
-    return;
-  }
-
-  // 3. Get skill list
+  // 2. Get skill list
   const skills = await listCanonicalSkills(CANONICAL_SKILLS_DIR);
   if (skills.length === 0) {
     p.cancel(`No skills found in ${CANONICAL_SKILLS_DIR}.`);
     throw new CliError(`No skills found in ${CANONICAL_SKILLS_DIR}.`);
   }
 
-  // 4. In project mode, let user pick which skills to link
-  let selectedSkills = skills;
+  // 3. Link/copy skills
+  const linkedAgents: string[] = [];
+  const skippedAgents: { id: string; reason: string }[] = [];
+
   if (options.project) {
+    // Project mode prompt order: skills → copy/symlink → agents
+
+    // 3a. Select skills (no pre-selection in project mode)
     const skillChoices = skills.map(name => ({
       value: name,
       label: name,
@@ -69,7 +51,6 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
     const pickedSkills = await p.multiselect<string>({
       message: 'Select skills to link:',
       options: skillChoices,
-      initialValues: skills,
       required: false,
     });
 
@@ -78,19 +59,9 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
       return;
     }
 
-    selectedSkills = pickedSkills as string[];
-  }
+    const selectedSkills = pickedSkills as string[];
 
-  // 5. Link/copy skills
-  const linkedAgents: string[] = [];
-  const skippedAgents: { id: string; reason: string }[] = [];
-
-  const validSelected = new Set(Object.keys(agentRegistry));
-  const selectedAgents = (selected as string[]).filter(
-    (id): id is AgentId => validSelected.has(id)
-  );
-  if (options.project) {
-    // Project mode: prompt for copy vs symlink, group by projectPath
+    // 3b. Select copy vs symlink
     const mode = await p.select({
       message: 'How should skills be added to the project?',
       options: [
@@ -105,6 +76,35 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
       return;
     }
 
+    // 3c. Select agents
+    const agentChoices = agents.map(id => {
+      const globalPath = getAgentGlobalPath(id);
+      const dirExists = existsSync(globalPath);
+      return {
+        value: id as string,
+        label: `${agentRegistry[id].displayName} (${id})`,
+        hint: dirExists ? globalPath : `${globalPath} — directory will be created`,
+      };
+    });
+
+    const selected = await p.multiselect<string>({
+      message: 'Select agents to link skills to:',
+      options: agentChoices,
+      initialValues: computeInitialValues(agents, agentChoices),
+      required: false,
+    });
+
+    if (p.isCancel(selected) || !selected.length) {
+      p.cancel('No agents selected.');
+      return;
+    }
+
+    const validSelected = new Set(Object.keys(agentRegistry));
+    const selectedAgents = (selected as string[]).filter(
+      (id): id is AgentId => validSelected.has(id)
+    );
+
+    // 3d. Execute: group by projectPath, copy/link
     const groups = groupAgentsByProjectPath(selectedAgents);
 
     for (const [projectPath, groupAgentIds] of groups) {
@@ -142,8 +142,43 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
         }
       }
     }
+
+    // Save selection for next time
+    if (linkedAgents.length > 0) {
+      writeConfig({ lastLinkedAgents: selectedAgents });
+    }
   } else {
-    // Global mode: create symlinks for each agent individually
+    // Global mode: agents → link all skills
+
+    // 3a. Select agents
+    const agentChoices = agents.map(id => {
+      const globalPath = getAgentGlobalPath(id);
+      const dirExists = existsSync(globalPath);
+      return {
+        value: id as string,
+        label: `${agentRegistry[id].displayName} (${id})`,
+        hint: dirExists ? globalPath : `${globalPath} — directory will be created`,
+      };
+    });
+
+    const selected = await p.multiselect<string>({
+      message: 'Select agents to link skills to:',
+      options: agentChoices,
+      initialValues: computeInitialValues(agents, agentChoices),
+      required: false,
+    });
+
+    if (p.isCancel(selected) || !selected.length) {
+      p.cancel('No agents selected.');
+      return;
+    }
+
+    const validSelected = new Set(Object.keys(agentRegistry));
+    const selectedAgents = (selected as string[]).filter(
+      (id): id is AgentId => validSelected.has(id)
+    );
+
+    // 3b. Link all skills for each agent
     for (const agentId of selectedAgents) {
       const globalPath = getAgentGlobalPath(agentId);
       const spinner = p.spinner();
@@ -166,14 +201,14 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
         skippedAgents.push({ id: agentId, reason: String(err) });
       }
     }
+
+    // Save selection for next time
+    if (linkedAgents.length > 0) {
+      writeConfig({ lastLinkedAgents: selectedAgents });
+    }
   }
 
-  // 6. Save selection for next time
-  if (linkedAgents.length > 0) {
-    writeConfig({ lastLinkedAgents: selectedAgents });
-  }
-
-  // 6. Summary
+  // Summary
   p.note(
     [
       linkedAgents.length > 0 ? `✓ Linked: ${linkedAgents.join(', ')}` : '',
