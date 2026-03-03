@@ -78,12 +78,13 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
 
     // 3c. Select agents
     const agentChoices = agents.map(id => {
-      const globalPath = getAgentGlobalPath(id);
-      const dirExists = existsSync(globalPath);
+      const projectPath = agentRegistry[id].projectPath;
+      const targetDir = join(process.cwd(), projectPath);
+      const dirExists = existsSync(targetDir);
       return {
         value: id as string,
         label: `${agentRegistry[id].displayName} (${id})`,
-        hint: dirExists ? globalPath : `${globalPath} — directory will be created`,
+        hint: dirExists ? projectPath : `${projectPath} — directory will be created`,
       };
     });
 
