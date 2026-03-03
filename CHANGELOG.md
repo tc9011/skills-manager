@@ -1,3 +1,10 @@
+## [0.5.1](https://github.com/tc9011/skills-manager/compare/v0.5.0...v0.5.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* show project path instead of global path in --project agent selection ([7de320a](https://github.com/tc9011/skills-manager/commit/7de320a0871f5b8817b16e928f58027ef28c8b9b))
+
 # [0.5.0](https://github.com/tc9011/skills-manager/compare/v0.4.1...v0.5.0) (2026-03-03)
 
 
