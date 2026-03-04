@@ -148,13 +148,15 @@ Example project structure after `link --project`:
 
 ## Authentication
 
-Resolved in this order:
+Authentication is **optional**. If git already has credentials configured (SSH keys, macOS Keychain, `git credential-manager`, etc.), push and pull will work without any extra setup.
+
+When no git credentials are available, the CLI looks for a token in this order:
 
 1. **`gh auth token`** — GitHub CLI (recommended)
 2. **`$GITHUB_TOKEN`** — environment variable
 3. **`$GH_TOKEN`** — environment variable
 
-If none found, you'll be prompted to run `gh auth login`. The `link` command does not require authentication.
+If none are found, git will attempt the operation unauthenticated — which works for public repos but will fail for private ones. The `link` command never requires authentication.
 
 ## Supported Agents
 

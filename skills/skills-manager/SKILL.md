@@ -33,20 +33,18 @@ Requires Node.js ≥ 20. [GitHub CLI](https://cli.github.com/) (`gh`) recommende
 
 ## Authentication
 
-Token resolved in order: `gh auth token` → `$GITHUB_TOKEN` → `$GH_TOKEN`.
+Authentication is **optional**. If git already has credentials configured (SSH keys, macOS Keychain, `git credential-manager`, etc.), no extra setup is needed.
 
-**Before running any command**, verify authentication is available:
+If git cannot authenticate on its own, the CLI will try these token sources in order:
 
-```bash
-gh auth status 2>/dev/null || echo "No GitHub auth found."
-```
+1. `gh auth token` — GitHub CLI
+2. `$GITHUB_TOKEN` — environment variable
+3. `$GH_TOKEN` — environment variable
 
-If no authentication is found, guide the user through ONE of these options:
+If push/pull fails with an auth error, guide the user to set up ONE of:
 
-1. **Has `gh` CLI installed** → run `gh auth login`
-2. **No `gh` CLI** → set environment variable: `export GITHUB_TOKEN=ghp_your_token_here`
-
-Do NOT proceed with push/pull/link commands until authentication is confirmed.
+1. **Has `gh` CLI** → `gh auth login`
+2. **No `gh` CLI** → `export GITHUB_TOKEN=ghp_your_token_here`
 
 ## Commands
 
