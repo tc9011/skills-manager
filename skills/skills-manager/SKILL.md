@@ -14,6 +14,8 @@ npx @tc9011/skills-manager push          # run directly
 npm install -g @tc9011/skills-manager     # or install globally
 ```
 
+If installed globally, replace `npx @tc9011/skills-manager` with `skills-manager` in all commands below.
+
 Requires Node.js ≥ 20. [GitHub CLI](https://cli.github.com/) (`gh`) recommended for auth.
 
 ## Key Paths
@@ -35,8 +37,8 @@ Resolved in order: `gh auth token` → `$GITHUB_TOKEN` → `$GH_TOKEN`.
 Commit and push `~/.agents/` to GitHub.
 
 ```bash
-skills-manager push                    # auto-generated commit message
-skills-manager push -m "add new skill" # custom message
+npx @tc9011/skills-manager push                    # auto-generated commit message
+npx @tc9011/skills-manager push -m "add new skill" # custom message
 ```
 
 First run auto-initializes git repo + prompts for remote. On conflict (remote ahead), rejects with instructions to pull first.
@@ -46,9 +48,9 @@ First run auto-initializes git repo + prompts for remote. On conflict (remote ah
 Pull from GitHub. Auto-runs `link` afterward unless skipped.
 
 ```bash
-skills-manager pull --repo owner/name  # specify repo
-skills-manager pull                    # use existing remote
-skills-manager pull --skip-link        # pull only, don't auto-link
+npx @tc9011/skills-manager pull --repo owner/name  # specify repo
+npx @tc9011/skills-manager pull                    # use existing remote
+npx @tc9011/skills-manager pull --skip-link        # pull only, don't auto-link
 ```
 
 On rebase conflict, aborts and shows manual resolution steps.
@@ -58,8 +60,8 @@ On rebase conflict, aborts and shows manual resolution steps.
 Read `.skill-lock.json`, create **relative** symlinks from each agent's global skills directory to `~/.agents/skills/`.
 
 ```bash
-skills-manager link                          # interactive multiselect
-skills-manager link --agents cursor opencode # specific agents
+npx @tc9011/skills-manager link                          # interactive multiselect
+npx @tc9011/skills-manager link --agents cursor opencode # specific agents
 ```
 
 Selection is remembered across runs.
@@ -74,7 +76,7 @@ Link or copy skills to current working directory. Three-step interactive flow:
 
 ```bash
 cd /path/to/project
-skills-manager link --project
+npx @tc9011/skills-manager link --project
 ```
 
 Agents sharing the same projectPath are deduplicated.
@@ -84,21 +86,21 @@ Agents sharing the same projectPath are deduplicated.
 ### First-time setup (new machine)
 
 ```bash
-skills-manager pull --repo owner/my-skills   # clone + auto-link
+npx @tc9011/skills-manager pull --repo owner/my-skills   # clone + auto-link
 ```
 
 ### Daily sync
 
 ```bash
-skills-manager pull    # fetch latest + re-link
-skills-manager push    # backup local changes
+npx @tc9011/skills-manager pull    # fetch latest + re-link
+npx @tc9011/skills-manager push    # backup local changes
 ```
 
 ### Project-level skills
 
 ```bash
 cd /path/to/project
-skills-manager link --project
+npx @tc9011/skills-manager link --project
 # Creates e.g. .agents/skills/, .claude/skills/ in CWD
 ```
 
