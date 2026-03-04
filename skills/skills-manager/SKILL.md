@@ -14,7 +14,7 @@ npx @tc9011/skills-manager push          # run directly
 npm install -g @tc9011/skills-manager     # or install globally
 ```
 
-If installed globally, replace `npx @tc9011/skills-manager` with `skills-manager` in all commands below.
+**If installed globally, replace `npx @tc9011/skills-manager` with `skills-manager` in all commands below.**
 
 Requires Node.js ≥ 20. [GitHub CLI](https://cli.github.com/) (`gh`) recommended for auth.
 
