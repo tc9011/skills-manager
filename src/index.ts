@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
+import { createRequire } from 'node:module';
 import { CliError } from './errors.js';
 import { pushCommand } from './commands/push.js';
 import { pullCommand } from './commands/pull.js';
 import { linkCommand } from './commands/link.js';
+
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json') as { version: string };
 
 const program = new Command();
 
 program
   .name('skills-manager')
   .description('Backup and restore AI agent skills to GitHub')
-  .version('0.1.0');
+  .version(pkg.version);
 
 program
   .command('push')
