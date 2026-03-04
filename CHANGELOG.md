@@ -1,3 +1,18 @@
+## [0.6.2](https://github.com/tc9011/skills-manager/compare/v0.6.1...v0.6.2) (2026-03-04)
+
+
+### Bug Fixes
+
+* read CLI version dynamically from package.json ([ce6008e](https://github.com/tc9011/skills-manager/commit/ce6008ef8a579b83939f98552ce0691deb369f1c))
+* reclassify Cursor as non-universal agent with .cursor/skills project path ([7187da5](https://github.com/tc9011/skills-manager/commit/7187da59ab3ac2c5da97f9a9f0b4c11f15ec7b80))
+* replace all 52 no-explicit-any casts with proper types in test files ([05708c7](https://github.com/tc9011/skills-manager/commit/05708c76a39ec3acf02945663aa008d7f96068e9))
+* use $XDG_CONFIG_HOME for amp, kimi-cli, replit, universal, goose, and crush globalPaths ([62dfdc8](https://github.com/tc9011/skills-manager/commit/62dfdc8429c2ab94f96c0f60639173a4d601e581))
+
+
+### Reverts
+
+* Revert "fix: reclassify Cursor as non-universal agent with .cursor/skills project path" ([d0e2ec9](https://github.com/tc9011/skills-manager/commit/d0e2ec931c2537515d5249fccbd413c3bbf43a93))
+
 ## [0.6.1](https://github.com/tc9011/skills-manager/compare/v0.6.0...v0.6.1) (2026-03-04)
 
 
