@@ -150,6 +150,30 @@ export async function pushSkills(
 
   // Push — if token provided, temporarily set the remote URL with auth, then restore
   const branch = await getCurrentBranch(git);
+
+  const doPush = async () => {
+    try {
+      await git.push('origin', branch);
+    } catch (err) {
+      const msg = String(err);
+      if (msg.includes('non-fast-forward') || msg.includes('fetch first') || msg.includes('rejected') || msg.includes('failed to push')) {
+        throw new Error(
+          'Push rejected — remote contains commits that you do not have locally.\n'
+          + 'Pull the latest changes first, resolve any conflicts, then push again:\n'
+          + '  skills-manager pull\n'
+          + '  skills-manager push\n'
+          + '\n'
+          + 'Or resolve manually:\n'
+          + '  cd ~/.agents\n'
+          + `  git pull --rebase origin ${branch}   # resolve conflicts if any, then git rebase --continue\n`
+          + '  skills-manager push',
+          { cause: err },
+        );
+      }
+      throw err;
+    }
+  };
+
   if (token) {
     const remotes = await git.getRemotes(true);
     const origin = remotes.find((r) => r.name === 'origin');
@@ -160,13 +184,13 @@ export async function pushSkills(
     const authUrl = buildAuthUrl(cleanUrl, token);
     try {
       await git.remote(['set-url', 'origin', authUrl]);
-      await git.push('origin', branch);
+      await doPush();
     } finally {
       // Always restore the clean URL
       await git.remote(['set-url', 'origin', cleanUrl]);
     }
   } else {
-    await git.push('origin', branch);
+    await doPush();
   }
 
   return { committed: true, pushed: true, suspiciousFiles: suspicious.length > 0 ? suspicious : undefined };

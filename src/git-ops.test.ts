@@ -261,6 +261,59 @@ describe('pushSkills', () => {
     const commitCall = mockGit.commit.mock.calls[0][0] as string;
     expect(commitCall).toMatch(/^backup:/);
   });
+
+  it('throws user-friendly error when push is rejected due to non-fast-forward (no token)', async () => {
+    mockGit.status.mockResolvedValue({ isClean: () => false });
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.commit.mockResolvedValue(undefined);
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.push.mockRejectedValue(new Error('error: failed to push some refs... non-fast-forward'));
+
+    await expect(pushSkills(tempDir, 'test')).rejects.toThrow('Push rejected');
+    await expect(pushSkills(tempDir, 'test')).rejects.toThrow('skills-manager pull');
+  });
+
+  it('throws user-friendly error when push is rejected due to fetch first (with token)', async () => {
+    mockGit.status.mockResolvedValue({ isClean: () => false });
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.commit.mockResolvedValue(undefined);
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.getRemotes.mockResolvedValue([
+      { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
+    ]);
+    mockGit.remote.mockResolvedValue(undefined);
+    mockGit.push.mockRejectedValue(new Error('hint: Updates were rejected because the remote contains work... fetch first'));
+
+    await expect(pushSkills(tempDir, 'test', 'ghp_token123')).rejects.toThrow('Push rejected');
+  });
+
+  it('still restores clean URL when push conflict occurs with token', async () => {
+    mockGit.status.mockResolvedValue({ isClean: () => false });
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.commit.mockResolvedValue(undefined);
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.getRemotes.mockResolvedValue([
+      { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
+    ]);
+    mockGit.remote.mockResolvedValue(undefined);
+    mockGit.push.mockRejectedValue(new Error('rejected non-fast-forward'));
+
+    await expect(pushSkills(tempDir, 'test', 'ghp_token')).rejects.toThrow('Push rejected');
+
+    // Verify clean URL was restored (last remote call should restore clean URL)
+    const remoteCalls = mockGit.remote.mock.calls;
+    expect(remoteCalls[remoteCalls.length - 1][0]).toEqual(['set-url', 'origin', 'https://github.com/user/repo.git']);
+  });
+
+  it('re-throws non-conflict push errors as-is', async () => {
+    mockGit.status.mockResolvedValue({ isClean: () => false });
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.commit.mockResolvedValue(undefined);
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.push.mockRejectedValue(new Error('network timeout'));
+
+    await expect(pushSkills(tempDir, 'test')).rejects.toThrow('network timeout');
+  });
 });
 
 // ---------------------------------------------------------------------------
