@@ -149,15 +149,15 @@ If none found, you'll be prompted to run `gh auth login`. The `link` command doe
 
 | Agent | ID | Global Path |
 |-------|----|-------------|
-| Amp | `amp` | `~/.config/agents/skills` |
+| Amp | `amp` | `$XDG_CONFIG_HOME/agents/skills` |
 | Cline | `cline` | `~/.agents/skills` |
 | Codex | `codex` | `$CODEX_HOME/skills` |
 | Gemini CLI | `gemini-cli` | `~/.gemini/skills` |
 | GitHub Copilot | `github-copilot` | `~/.copilot/skills` |
-| Kimi Code CLI | `kimi-cli` | `~/.config/agents/skills` |
+| Kimi Code CLI | `kimi-cli` | `$XDG_CONFIG_HOME/agents/skills` |
 | OpenCode | `opencode` | `$XDG_CONFIG_HOME/opencode/skills` |
-| Replit | `replit` | `~/.config/agents/skills` |
-| Universal | `universal` | `~/.config/agents/skills` |
+| Replit | `replit` | `$XDG_CONFIG_HOME/agents/skills` |
+| Universal | `universal` | `$XDG_CONFIG_HOME/agents/skills` |
 
 </details>
 
@@ -175,9 +175,9 @@ If none found, you'll be prompted to run `gh auth login`. The `link` command doe
 | Continue | `continue` | `~/.continue/skills` |
 | Cortex Code | `cortex` | `~/.snowflake/cortex/skills` |
 | Cursor | `cursor` | `~/.cursor/skills` |
-| Crush | `crush` | `~/.config/crush/skills` |
+| Crush | `crush` | `$XDG_CONFIG_HOME/crush/skills` |
 | Droid | `droid` | `~/.factory/skills` |
-| Goose | `goose` | `~/.config/goose/skills` |
+| Goose | `goose` | `$XDG_CONFIG_HOME/goose/skills` |
 | iFlow CLI | `iflow-cli` | `~/.iflow/skills` |
 | Junie | `junie` | `~/.junie/skills` |
 | Kilo Code | `kilo` | `~/.kilocode/skills` |
@@ -207,7 +207,7 @@ If none found, you'll be prompted to run `gh auth login`. The `link` command doe
 |----------|---------|---------|
 | `GITHUB_TOKEN` | `push`, `pull` | — |
 | `GH_TOKEN` | `push`, `pull` | — |
-| `XDG_CONFIG_HOME` | `opencode`, `amp`, `kimi-cli`, `replit`, `universal` | `~/.config` |
+| `XDG_CONFIG_HOME` | `opencode`, `amp`, `kimi-cli`, `replit`, `universal`, `goose`, `crush` | `~/.config` |
 | `CODEX_HOME` | `codex` | `~/.codex` |
 | `CLAUDE_CONFIG_DIR` | `claude-code` | `~/.claude` |
 

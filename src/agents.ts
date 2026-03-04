@@ -21,15 +21,15 @@ export interface AgentPaths {
 
 export const agentRegistry: Record<AgentId, AgentPaths> = {
   // UNIVERSAL GROUP (.agents/skills)
-  amp:              { displayName: 'Amp',              projectPath: '.agents/skills', globalPath: '~/.config/agents/skills',   universal: true },
+  amp:              { displayName: 'Amp',              projectPath: '.agents/skills', globalPath: '$XDG_CONFIG_HOME/agents/skills',   universal: true },
   cline:            { displayName: 'Cline',            projectPath: '.agents/skills', globalPath: '~/.agents/skills',          universal: true },
   codex:            { displayName: 'Codex',            projectPath: '.agents/skills', globalPath: '$CODEX_HOME/skills',        universal: true },
   'gemini-cli':     { displayName: 'Gemini CLI',       projectPath: '.agents/skills', globalPath: '~/.gemini/skills',          universal: true },
   'github-copilot': { displayName: 'GitHub Copilot',   projectPath: '.agents/skills', globalPath: '~/.copilot/skills',         universal: true },
-  'kimi-cli':       { displayName: 'Kimi Code CLI',    projectPath: '.agents/skills', globalPath: '~/.config/agents/skills',   universal: true },
+  'kimi-cli':       { displayName: 'Kimi Code CLI',    projectPath: '.agents/skills', globalPath: '$XDG_CONFIG_HOME/agents/skills',   universal: true },
   opencode:         { displayName: 'OpenCode',         projectPath: '.agents/skills', globalPath: '$XDG_CONFIG_HOME/opencode/skills', universal: true },
-  replit:           { displayName: 'Replit',            projectPath: '.agents/skills', globalPath: '~/.config/agents/skills',   universal: true },
-  universal:        { displayName: 'Universal',        projectPath: '.agents/skills', globalPath: '~/.config/agents/skills',   universal: true },
+  replit:           { displayName: 'Replit',            projectPath: '.agents/skills', globalPath: '$XDG_CONFIG_HOME/agents/skills',   universal: true },
+  universal:        { displayName: 'Universal',        projectPath: '.agents/skills', globalPath: '$XDG_CONFIG_HOME/agents/skills',   universal: true },
 
   // NON-UNIVERSAL (agent-specific paths)
   antigravity:      { displayName: 'Antigravity',      projectPath: '.agent/skills',        globalPath: '~/.gemini/antigravity/skills',    universal: false },
@@ -41,9 +41,9 @@ export const agentRegistry: Record<AgentId, AgentPaths> = {
   continue:         { displayName: 'Continue',         projectPath: '.continue/skills',     globalPath: '~/.continue/skills',              universal: false },
   cortex:           { displayName: 'Cortex Code',      projectPath: '.cortex/skills',       globalPath: '~/.snowflake/cortex/skills',      universal: false },
   cursor:           { displayName: 'Cursor',           projectPath: '.cursor/skills',   globalPath: '~/.cursor/skills',                universal: false },
-  crush:            { displayName: 'Crush',            projectPath: '.crush/skills',        globalPath: '~/.config/crush/skills',          universal: false },
+  crush:            { displayName: 'Crush',            projectPath: '.crush/skills',        globalPath: '$XDG_CONFIG_HOME/crush/skills',          universal: false },
   droid:            { displayName: 'Droid',            projectPath: '.factory/skills',      globalPath: '~/.factory/skills',               universal: false },
-  goose:            { displayName: 'Goose',            projectPath: '.goose/skills',        globalPath: '~/.config/goose/skills',          universal: false },
+  goose:            { displayName: 'Goose',            projectPath: '.goose/skills',        globalPath: '$XDG_CONFIG_HOME/goose/skills',          universal: false },
   junie:            { displayName: 'Junie',            projectPath: '.junie/skills',        globalPath: '~/.junie/skills',                 universal: false },
   'iflow-cli':      { displayName: 'iFlow CLI',        projectPath: '.iflow/skills',        globalPath: '~/.iflow/skills',                 universal: false },
   kilo:             { displayName: 'Kilo Code',        projectPath: '.kilocode/skills',     globalPath: '~/.kilocode/skills',              universal: false },

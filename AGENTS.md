@@ -133,7 +133,7 @@ Commit messages follow Conventional Commits:
 |----------|---------|---------|
 | `GITHUB_TOKEN` | Auth fallback | — |
 | `GH_TOKEN` | Auth fallback | — |
-| `XDG_CONFIG_HOME` | Path resolution for opencode, amp, etc. | `~/.config` |
+| `XDG_CONFIG_HOME` | Path resolution for opencode, amp, kimi-cli, replit, universal, goose, crush | `~/.config` |
 | `CODEX_HOME` | Path resolution for codex | `~/.codex` |
 | `CLAUDE_CONFIG_DIR` | Path resolution for claude-code | `~/.claude` |
 

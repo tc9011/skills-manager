@@ -108,6 +108,42 @@ describe('getAgentGlobalPath', () => {
   });
 });
 
+  it('resolves amp with XDG_CONFIG_HOME fallback', () => {
+    const home = process.env.HOME!;
+    const path = getAgentGlobalPath('amp');
+    expect(path).toBe(`${home}/.config/agents/skills`);
+  });
+
+  it('resolves goose with XDG_CONFIG_HOME fallback', () => {
+    const home = process.env.HOME!;
+    const path = getAgentGlobalPath('goose');
+    expect(path).toBe(`${home}/.config/goose/skills`);
+  });
+
+  it('resolves amp with custom XDG_CONFIG_HOME', () => {
+    const original = process.env.XDG_CONFIG_HOME;
+    process.env.XDG_CONFIG_HOME = '/tmp/custom-xdg';
+    try {
+      const path = getAgentGlobalPath('amp');
+      expect(path).toBe('/tmp/custom-xdg/agents/skills');
+    } finally {
+      if (original === undefined) delete process.env.XDG_CONFIG_HOME;
+      else process.env.XDG_CONFIG_HOME = original;
+    }
+  });
+
+  it('resolves goose with custom XDG_CONFIG_HOME', () => {
+    const original = process.env.XDG_CONFIG_HOME;
+    process.env.XDG_CONFIG_HOME = '/tmp/custom-xdg';
+    try {
+      const path = getAgentGlobalPath('goose');
+      expect(path).toBe('/tmp/custom-xdg/goose/skills');
+    } finally {
+      if (original === undefined) delete process.env.XDG_CONFIG_HOME;
+      else process.env.XDG_CONFIG_HOME = original;
+    }
+  });
+
 describe('agent constants', () => {
   it('AGENTS_DIR resolves to ~/.agents', () => {
     expect(AGENTS_DIR).toBe(join(homedir(), '.agents'));
