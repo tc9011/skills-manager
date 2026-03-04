@@ -58,7 +58,7 @@ export async function pullCommand(options: { repo?: string; skipLink?: boolean }
       spinner.stop('Already up to date.');
     }
   } catch (err) {
-    spinner.stop('Pull failed.');
+    spinner.error('Pull failed.');
     p.cancel(String(err));
     throw new CliError(String(err));
   }

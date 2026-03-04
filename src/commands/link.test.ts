@@ -13,7 +13,7 @@ vi.mock('@clack/prompts', () => ({
   cancel: vi.fn(),
   outro: vi.fn(),
   note: vi.fn(),
-  spinner: () => ({ start: vi.fn(), stop: vi.fn() }),
+  spinner: () => ({ start: vi.fn(), stop: vi.fn(), error: vi.fn() }),
   multiselect: vi.fn(),
   select: vi.fn(),
   isCancel: vi.fn(() => false),

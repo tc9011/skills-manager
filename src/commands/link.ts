@@ -137,7 +137,7 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
         }
         linkedAgents.push(...groupAgentIds);
       } catch (err) {
-        spinner.stop(`${projectPath}: failed`);
+        spinner.error(`${projectPath}: failed`);
         for (const id of groupAgentIds) {
           skippedAgents.push({ id, reason: String(err) });
         }
@@ -198,7 +198,7 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
         spinner.stop(`${agentRegistry[agentId].displayName}: ${parts.join(', ')}`);
         linkedAgents.push(agentId);
       } catch (err) {
-        spinner.stop(`${agentRegistry[agentId].displayName}: failed`);
+        spinner.error(`${agentRegistry[agentId].displayName}: failed`);
         skippedAgents.push({ id: agentId, reason: String(err) });
       }
     }

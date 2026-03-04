@@ -67,7 +67,7 @@ Consider adding a .gitignore to ${AGENTS_DIR}.`,
       );
     }
   } catch (err) {
-    spinner.stop('Push failed.');
+    spinner.error('Push failed.');
     p.cancel(String(err));
     throw new CliError(String(err));
   }

@@ -69,7 +69,7 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
-    "@clack/prompts": "^0.10.0",
+    "@clack/prompts": "^1.1.0",
     "commander": "^13.0.0",
     "simple-git": "^3.27.0"
   }

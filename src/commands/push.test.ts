@@ -9,7 +9,7 @@ const mockPrompts = vi.hoisted(() => ({
   outro: vi.fn(),
   note: vi.fn(),
   log: { step: vi.fn(), warn: vi.fn(), info: vi.fn(), message: vi.fn(), success: vi.fn(), error: vi.fn() },
-  spinner: () => ({ start: vi.fn(), stop: vi.fn() }),
+  spinner: () => ({ start: vi.fn(), stop: vi.fn(), error: vi.fn() }),
   text: vi.fn(),
   confirm: vi.fn(),
   select: vi.fn(),
