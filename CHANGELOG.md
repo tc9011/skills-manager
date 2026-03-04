@@ -1,3 +1,15 @@
+# [0.9.0](https://github.com/tc9011/skills-manager/compare/v0.8.0...v0.9.0) (2026-03-04)
+
+
+### Bug Fixes
+
+* use shell variable for npm scope to prevent @ symbol being parsed as file path ([4fd4395](https://github.com/tc9011/skills-manager/commit/4fd4395c8391648681c591e5c8842119558ea2f9))
+
+
+### Features
+
+* make auth optional — use getGitHubToken instead of ensureGitHubToken ([dffc860](https://github.com/tc9011/skills-manager/commit/dffc86051f630aa6d438da38389d7c41bc9f124a))
+
 # [0.8.0](https://github.com/tc9011/skills-manager/compare/v0.7.1...v0.8.0) (2026-03-04)
 
 
