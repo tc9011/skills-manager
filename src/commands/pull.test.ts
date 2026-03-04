@@ -1,7 +1,7 @@
 // src/commands/pull.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CliError } from '../errors.js';
-import { ensureGitHubToken } from '../auth.js';
+import { getGitHubToken } from '../auth.js';
 import {
   pullSkills,
   buildRemoteUrl,
@@ -25,7 +25,7 @@ const mockPrompts = vi.hoisted(() => ({
 vi.mock('@clack/prompts', () => mockPrompts);
 
 vi.mock('../auth.js', () => ({
-  ensureGitHubToken: vi.fn(),
+  getGitHubToken: vi.fn(),
 }));
 
 vi.mock('../git-ops.js', () => ({
@@ -51,7 +51,7 @@ describe('pullCommand', () => {
   });
 
   it('pulls skills and runs link on happy path with --repo', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(buildRemoteUrl).mockReturnValue('https://github.com/owner/repo.git');
     vi.mocked(pullSkills).mockResolvedValue({ cloned: true, pulled: false });
 
@@ -63,7 +63,7 @@ describe('pullCommand', () => {
   });
 
   it('uses existing remote when no --repo option', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/existing/repo.git');
     vi.mocked(pullSkills).mockResolvedValue({ cloned: false, pulled: true });
 
@@ -79,7 +79,7 @@ describe('pullCommand', () => {
   });
 
   it('throws CliError when pullSkills throws', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(buildRemoteUrl).mockReturnValue('https://github.com/owner/repo.git');
     vi.mocked(pullSkills).mockRejectedValue(new Error('network error'));
 
@@ -88,7 +88,7 @@ describe('pullCommand', () => {
   });
 
   it('skips link when --skip-link flag is set', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(buildRemoteUrl).mockReturnValue('https://github.com/owner/repo.git');
     vi.mocked(pullSkills).mockResolvedValue({ cloned: false, pulled: true });
 
@@ -104,7 +104,7 @@ describe('pullCommand', () => {
   // === NEW TESTS: interactive repo prompt when no --repo and no remote ===
 
   it('prompts for repo interactively when no --repo and no remote, then pulls', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: false });
     vi.mocked(getRepoRemoteUrl).mockResolvedValue(null);
     // User types repo name
@@ -125,7 +125,7 @@ describe('pullCommand', () => {
   });
 
   it('throws CliError when user cancels interactive repo prompt', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: false });
     vi.mocked(getRepoRemoteUrl).mockResolvedValue(null);
     // Simulate user pressing Ctrl+C
@@ -137,7 +137,7 @@ describe('pullCommand', () => {
   });
 
   it('skips link when pull has no changes (pulled: false, cloned: false)', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(buildRemoteUrl).mockReturnValue('https://github.com/owner/repo.git');
     vi.mocked(pullSkills).mockResolvedValue({ cloned: false, pulled: false });
 
@@ -151,7 +151,7 @@ describe('pullCommand', () => {
   });
 
   it('runs link when pull brings new changes (pulled: true)', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(buildRemoteUrl).mockReturnValue('https://github.com/owner/repo.git');
     vi.mocked(pullSkills).mockResolvedValue({ cloned: false, pulled: true });
 

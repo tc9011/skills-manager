@@ -1,6 +1,6 @@
 // src/commands/push.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ensureGitHubToken } from '../auth.js';
+import { getGitHubToken } from '../auth.js';
 import { pushSkills, getRepoRemoteUrl, ensureGitRepo, ensureRemote, createGitHubRepo } from '../git-ops.js';
 
 const mockPrompts = vi.hoisted(() => ({
@@ -19,7 +19,7 @@ const mockPrompts = vi.hoisted(() => ({
 vi.mock('@clack/prompts', () => mockPrompts);
 
 vi.mock('../auth.js', () => ({
-  ensureGitHubToken: vi.fn(),
+  getGitHubToken: vi.fn(),
 }));
 
 vi.mock('../git-ops.js', () => ({
@@ -42,7 +42,7 @@ describe('push command logic', () => {
   });
 
   it('pushes skills on happy path (git repo + remote already exist)', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: false });
     vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/user/repo.git');
     vi.mocked(pushSkills).mockResolvedValue({ committed: true, pushed: true });
@@ -57,7 +57,7 @@ describe('push command logic', () => {
   });
 
   it('auto-inits git and prompts for repo when no remote', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: true });
     vi.mocked(getRepoRemoteUrl).mockResolvedValue(null);
     // User types repo name
@@ -80,7 +80,7 @@ describe('push command logic', () => {
   });
 
   it('creates GitHub repo via gh when push fails and user confirms', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: true });
     vi.mocked(getRepoRemoteUrl).mockResolvedValue(null);
     mockPrompts.text.mockResolvedValue('owner/my-skills');
@@ -102,7 +102,7 @@ describe('push command logic', () => {
 
   it('throws CliError when user cancels repo prompt', async () => {
     const { CliError } = await import('../errors.js');
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: false });
     vi.mocked(getRepoRemoteUrl).mockResolvedValue(null);
     // Simulate user pressing Ctrl+C
@@ -115,7 +115,7 @@ describe('push command logic', () => {
 
   it('throws CliError when pushSkills throws', async () => {
     const { CliError } = await import('../errors.js');
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: false });
     vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/user/repo.git');
     vi.mocked(pushSkills).mockRejectedValue(new Error('push failed'));
@@ -125,7 +125,7 @@ describe('push command logic', () => {
   });
 
   it('shows warning for suspicious files', async () => {
-    vi.mocked(ensureGitHubToken).mockResolvedValue('ghp_test_token');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
     vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: false });
     vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/user/repo.git');
     vi.mocked(pushSkills).mockResolvedValue({

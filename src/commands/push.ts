@@ -1,6 +1,6 @@
 // src/commands/push.ts
 import { AGENTS_DIR } from '../agents.js';
-import { ensureGitHubToken } from '../auth.js';
+import { getGitHubToken } from '../auth.js';
 import { CliError } from '../errors.js';
 import {
   pushSkills,
@@ -14,8 +14,8 @@ import * as p from '@clack/prompts';
 export async function pushCommand(options: { message?: string }): Promise<void> {
   p.intro('skills-manager push');
 
-  // 1. Check auth
-  const token = await ensureGitHubToken();
+  // 1. Try to get token (optional — git may have its own credentials)
+  const token = getGitHubToken();
 
   // 2. Ensure ~/.agents is a git repo (auto-init if needed)
   await ensureGitRepo(AGENTS_DIR);

@@ -1,5 +1,5 @@
 import { AGENTS_DIR } from '../agents.js';
-import { ensureGitHubToken } from '../auth.js';
+import { getGitHubToken } from '../auth.js';
 import { CliError } from '../errors.js';
 import {
   pullSkills,
@@ -14,7 +14,7 @@ import * as p from '@clack/prompts';
 export async function pullCommand(options: { repo?: string; skipLink?: boolean }): Promise<void> {
   p.intro('skills-manager pull');
 
-  const token = await ensureGitHubToken();
+  const token = getGitHubToken();
 
   // Determine remote URL
   let remoteUrl: string;
