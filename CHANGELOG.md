@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/tc9011/skills-manager/compare/v0.7.1...v0.8.0) (2026-03-04)
+
+
+### Features
+
+* support non-interactive link command via --agents, --skills, --mode flags ([4deb733](https://github.com/tc9011/skills-manager/commit/4deb733a0e1d70de1445c614ee4ba3a0dc5e31af))
+
 ## [0.7.1](https://github.com/tc9011/skills-manager/compare/v0.7.0...v0.7.1) (2026-03-04)
 
 
