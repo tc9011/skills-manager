@@ -1,3 +1,10 @@
+## [0.9.1](https://github.com/tc9011/skills-manager/compare/v0.9.0...v0.9.1) (2026-03-04)
+
+
+### Bug Fixes
+
+* add wrapper script to prevent AI from misinterpreting scoped package name ([3ed5148](https://github.com/tc9011/skills-manager/commit/3ed51489eb0ceb25620d9ec73f9eeaf64d79ceda))
+
 # [0.9.0](https://github.com/tc9011/skills-manager/compare/v0.8.0...v0.9.0) (2026-03-04)
 
 
