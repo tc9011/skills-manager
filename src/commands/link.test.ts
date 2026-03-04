@@ -1,6 +1,7 @@
 // src/commands/link.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CliError } from '../errors.js';
+import type { AgentId } from '../agents.js';
 import { getLastSelectedAgents } from '../lockfile.js';
 import { readConfig, writeConfig } from '../config.js';
 import { createSkillSymlinks, listCanonicalSkills, copySkills, createProjectSymlinks } from '../linker.js';
@@ -64,8 +65,8 @@ describe('linkCommand', () => {
   });
 
   it('links skills to agents on happy path', async () => {
-    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
-    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor'] as any);
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor']);
     vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
     vi.mocked(createSkillSymlinks).mockResolvedValue([
       { skill: 'my-skill', status: 'created' },
@@ -80,8 +81,8 @@ describe('linkCommand', () => {
   });
 
   it('saves selected agents to config after successful link', async () => {
-    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as any);
-    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor', 'opencode'] as any);
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as AgentId[]);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor', 'opencode']);
     vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
     vi.mocked(createSkillSymlinks).mockResolvedValue([
       { skill: 'my-skill', status: 'created' },
@@ -96,7 +97,7 @@ describe('linkCommand', () => {
   });
 
   it('throws CliError when no skills found in canonical dir', async () => {
-    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
     vi.mocked(listCanonicalSkills).mockResolvedValue([]);
 
     const { linkCommand } = await import('./link.js');
@@ -104,10 +105,10 @@ describe('linkCommand', () => {
   });
 
   it('returns gracefully when user cancels multiselect', async () => {
-    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
     vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
     vi.mocked(prompts.isCancel).mockReturnValue(true);
-    vi.mocked(prompts.multiselect).mockResolvedValue(Symbol('cancel') as any);
+    vi.mocked(prompts.multiselect).mockResolvedValue(Symbol('cancel') as symbol);
 
     const { linkCommand } = await import('./link.js');
     // Should not throw — just returns after cancel
@@ -119,8 +120,8 @@ describe('linkCommand', () => {
 
   it('handles agent symlink creation failure in summary', async () => {
     vi.mocked(prompts.isCancel).mockReturnValue(false);
-    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
-    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor'] as any);
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor']);
     vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
     vi.mocked(createSkillSymlinks).mockRejectedValue(new Error('permission denied'));
 
@@ -133,8 +134,8 @@ describe('linkCommand', () => {
 
   it('uses saved lastLinkedAgents for initial selection', async () => {
     vi.mocked(readConfig).mockReturnValue({ lastLinkedAgents: ['opencode'] });
-    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as any);
-    vi.mocked(prompts.multiselect).mockResolvedValue(['opencode'] as any);
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as AgentId[]);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['opencode']);
     vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
     vi.mocked(createSkillSymlinks).mockResolvedValue([
       { skill: 'my-skill', status: 'created' },
@@ -144,7 +145,7 @@ describe('linkCommand', () => {
     await linkCommand({});
 
     // multiselect should be called with initialValues from saved config
-    const multiselectCall = vi.mocked(prompts.multiselect).mock.calls[0][0] as any;
+    const multiselectCall = vi.mocked(prompts.multiselect).mock.calls[0][0] as { initialValues?: string[]; options?: Array<{ value: string; label: string }> };
     expect(multiselectCall.initialValues).toEqual(['opencode']);
   });
 
@@ -152,12 +153,12 @@ describe('linkCommand', () => {
     // New prompt order: skills → copy/symlink → agents
 
     it('calls copySkills when project mode with copy (default)', async () => {
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
       vi.mocked(prompts.multiselect)
-        .mockResolvedValueOnce(['my-skill'] as any)    // skill select (1st)
-        .mockResolvedValueOnce(['cursor'] as any);     // agent select (2nd)
-      vi.mocked((prompts as any).select).mockResolvedValue('copy');
+        .mockResolvedValueOnce(['my-skill'])
+        .mockResolvedValueOnce(['cursor']);
+      vi.mocked(prompts.select).mockResolvedValue('copy');
       vi.mocked(copySkills).mockResolvedValue([
         { skill: 'my-skill', status: 'copied' },
       ]);
@@ -174,12 +175,12 @@ describe('linkCommand', () => {
     });
 
     it('calls createProjectSymlinks when project mode with symlink', async () => {
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
       vi.mocked(prompts.multiselect)
-        .mockResolvedValueOnce(['my-skill'] as any)    // skill select (1st)
-        .mockResolvedValueOnce(['cursor'] as any);     // agent select (2nd)
-      vi.mocked((prompts as any).select).mockResolvedValue('symlink');
+        .mockResolvedValueOnce(['my-skill'])
+        .mockResolvedValueOnce(['cursor']);
+      vi.mocked(prompts.select).mockResolvedValue('symlink');
       vi.mocked(createProjectSymlinks).mockResolvedValue([
         { skill: 'my-skill', status: 'created' },
       ]);
@@ -194,12 +195,12 @@ describe('linkCommand', () => {
 
     it('deduplicates universal agents sharing same projectPath', async () => {
       // opencode and amp are both universal → share '.agents/skills' projectPath
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['opencode', 'amp'] as any);
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['opencode', 'amp'] as AgentId[]);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
       vi.mocked(prompts.multiselect)
-        .mockResolvedValueOnce(['my-skill'] as any)                  // skill select (1st)
-        .mockResolvedValueOnce(['opencode', 'amp'] as any);      // agent select (2nd)
-      vi.mocked((prompts as any).select).mockResolvedValue('copy');
+        .mockResolvedValueOnce(['my-skill'])
+        .mockResolvedValueOnce(['opencode', 'amp']);
+      vi.mocked(prompts.select).mockResolvedValue('copy');
       vi.mocked(copySkills).mockResolvedValue([
         { skill: 'my-skill', status: 'copied' },
       ]);
@@ -212,13 +213,13 @@ describe('linkCommand', () => {
     });
 
     it('returns gracefully when user cancels mode prompt', async () => {
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
       vi.mocked(prompts.multiselect)
-        .mockResolvedValueOnce(['my-skill'] as any);   // skill select (1st)
+        .mockResolvedValueOnce(['my-skill']);
       // isCancel returns true only for the select result
       const selectResult = Symbol('cancel');
-      vi.mocked((prompts as any).select).mockResolvedValue(selectResult);
+      vi.mocked(prompts.select).mockResolvedValue(selectResult);
       vi.mocked(prompts.isCancel)
         .mockReturnValueOnce(false)   // for skill multiselect check
         .mockReturnValueOnce(true);   // for mode select check
@@ -232,12 +233,12 @@ describe('linkCommand', () => {
     });
 
     it('saves config after successful project link', async () => {
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
       vi.mocked(prompts.multiselect)
-        .mockResolvedValueOnce(['my-skill'] as any)    // skill select (1st)
-        .mockResolvedValueOnce(['cursor'] as any);     // agent select (2nd)
-      vi.mocked((prompts as any).select).mockResolvedValue('copy');
+        .mockResolvedValueOnce(['my-skill'])
+        .mockResolvedValueOnce(['cursor']);
+      vi.mocked(prompts.select).mockResolvedValue('copy');
       vi.mocked(copySkills).mockResolvedValue([
         { skill: 'my-skill', status: 'copied' },
       ]);
@@ -251,12 +252,12 @@ describe('linkCommand', () => {
     });
 
     it('shows skill multiselect prompt without pre-selection', async () => {
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['skill-a', 'skill-b']);
       vi.mocked(prompts.multiselect)
-        .mockResolvedValueOnce(['skill-a', 'skill-b'] as any)    // skill select (1st)
-        .mockResolvedValueOnce(['cursor'] as any);                // agent select (2nd)
-      vi.mocked((prompts as any).select).mockResolvedValue('copy');
+        .mockResolvedValueOnce(['skill-a', 'skill-b'])
+        .mockResolvedValueOnce(['cursor']);
+      vi.mocked(prompts.select).mockResolvedValue('copy');
       vi.mocked(copySkills).mockResolvedValue([
         { skill: 'skill-a', status: 'copied' },
         { skill: 'skill-b', status: 'copied' },
@@ -266,7 +267,7 @@ describe('linkCommand', () => {
       await linkCommand({ agents: ['cursor'], project: true });
 
       // First multiselect call is for skills — no pre-selection in project mode
-      const skillMultiselectCall = vi.mocked(prompts.multiselect).mock.calls[0][0] as any;
+      const skillMultiselectCall = vi.mocked(prompts.multiselect).mock.calls[0][0] as { initialValues?: string[]; options?: Array<{ value: string; label: string }> };
       expect(skillMultiselectCall.options).toEqual([
         { value: 'skill-a', label: 'skill-a' },
         { value: 'skill-b', label: 'skill-b' },
@@ -275,12 +276,12 @@ describe('linkCommand', () => {
     });
 
     it('only links user-selected skills in project mode', async () => {
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['skill-a', 'skill-b']);
       vi.mocked(prompts.multiselect)
-        .mockResolvedValueOnce(['skill-b'] as any)     // skill select — only skill-b (1st)
-        .mockResolvedValueOnce(['cursor'] as any);     // agent select (2nd)
-      vi.mocked((prompts as any).select).mockResolvedValue('copy');
+        .mockResolvedValueOnce(['skill-b'])
+        .mockResolvedValueOnce(['cursor']);
+      vi.mocked(prompts.select).mockResolvedValue('copy');
       vi.mocked(copySkills).mockResolvedValue([
         { skill: 'skill-b', status: 'copied' },
       ]);
@@ -294,10 +295,10 @@ describe('linkCommand', () => {
     });
 
     it('returns gracefully when user cancels skill multiselect', async () => {
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
       vi.mocked(prompts.multiselect)
-        .mockResolvedValueOnce(Symbol('cancel') as any);     // skill select — cancelled (1st)
+        .mockResolvedValueOnce(Symbol('cancel') as symbol);
       vi.mocked(prompts.isCancel)
         .mockReturnValueOnce(true);   // for skill multiselect check
 
@@ -310,12 +311,12 @@ describe('linkCommand', () => {
     });
 
     it('returns gracefully when user cancels agent multiselect in project mode', async () => {
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
       vi.mocked(prompts.multiselect)
-        .mockResolvedValueOnce(['my-skill'] as any)          // skill select (1st)
-        .mockResolvedValueOnce(Symbol('cancel') as any);     // agent select — cancelled (2nd)
-      vi.mocked((prompts as any).select).mockResolvedValue('copy');
+        .mockResolvedValueOnce(['my-skill'])
+        .mockResolvedValueOnce(Symbol('cancel') as symbol);
+      vi.mocked(prompts.select).mockResolvedValue('copy');
       vi.mocked(prompts.isCancel)
         .mockReturnValueOnce(false)   // for skill multiselect check
         .mockReturnValueOnce(false)   // for mode select check
@@ -330,8 +331,8 @@ describe('linkCommand', () => {
     });
 
     it('does not show skill multiselect in global mode', async () => {
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as any);
-      vi.mocked(prompts.multiselect).mockResolvedValue(['cursor'] as any);
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
+      vi.mocked(prompts.multiselect).mockResolvedValue(['cursor']);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
       vi.mocked(createSkillSymlinks).mockResolvedValue([
         { skill: 'my-skill', status: 'created' },

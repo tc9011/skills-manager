@@ -1,6 +1,7 @@
 // src/auth.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getGitHubToken, ensureGitHubToken } from './auth.js';
+import type { SpawnSyncReturns } from 'node:child_process';
 import { CliError } from './errors.js';
 
 vi.mock('node:child_process', () => ({
@@ -96,7 +97,7 @@ describe('ensureGitHubToken', () => {
       .mockImplementationOnce(() => { throw new Error('no gh'); })
       .mockReturnValueOnce('ghp_new_token\n');
     vi.mocked(p.select).mockResolvedValue('gh');
-    mockSpawnSync.mockReturnValue({ status: 0 } as any);
+    mockSpawnSync.mockReturnValue({ status: 0, pid: 0, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), signal: null } as SpawnSyncReturns<Buffer>);
 
     const token = await ensureGitHubToken();
     expect(token).toBe('ghp_new_token');
@@ -115,7 +116,7 @@ describe('ensureGitHubToken', () => {
   it('throws CliError when user cancels', async () => {
     mockExecSync.mockImplementation(() => { throw new Error('no gh'); });
     vi.mocked(p.isCancel).mockReturnValue(true);
-    vi.mocked(p.select).mockResolvedValue(Symbol('cancel') as any);
+    vi.mocked(p.select).mockResolvedValue(Symbol('cancel') as symbol);
 
     await expect(ensureGitHubToken()).rejects.toThrow(CliError);
   });
@@ -124,7 +125,7 @@ describe('ensureGitHubToken', () => {
     mockExecSync.mockImplementation(() => { throw new Error('no gh'); });
     vi.mocked(p.isCancel).mockReturnValue(false);
     vi.mocked(p.select).mockResolvedValue('gh');
-    mockSpawnSync.mockReturnValue({ status: 1 } as any);
+    mockSpawnSync.mockReturnValue({ status: 1, pid: 0, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), signal: null } as SpawnSyncReturns<Buffer>);
 
     await expect(ensureGitHubToken()).rejects.toThrow(CliError);
     await expect(ensureGitHubToken()).rejects.toThrow('gh auth login failed');
@@ -135,7 +136,7 @@ describe('ensureGitHubToken', () => {
     mockExecSync.mockImplementation(() => { throw new Error('no gh'); });
     vi.mocked(p.isCancel).mockReturnValue(false);
     vi.mocked(p.select).mockResolvedValue('gh');
-    mockSpawnSync.mockReturnValue({ status: 0 } as any);
+    mockSpawnSync.mockReturnValue({ status: 0, pid: 0, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), signal: null } as SpawnSyncReturns<Buffer>);
 
     await expect(ensureGitHubToken()).rejects.toThrow(CliError);
     await expect(ensureGitHubToken()).rejects.toThrow('No token after gh auth login');
