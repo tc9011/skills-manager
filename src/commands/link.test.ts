@@ -193,19 +193,19 @@ describe('linkCommand', () => {
     });
 
     it('deduplicates universal agents sharing same projectPath', async () => {
-      // cursor and opencode are both universal → share '.agents/skills' projectPath
-      vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as any);
+      // opencode and amp are both universal → share '.agents/skills' projectPath
+      vi.mocked(getLastSelectedAgents).mockResolvedValue(['opencode', 'amp'] as any);
       vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
       vi.mocked(prompts.multiselect)
         .mockResolvedValueOnce(['my-skill'] as any)                  // skill select (1st)
-        .mockResolvedValueOnce(['cursor', 'opencode'] as any);      // agent select (2nd)
+        .mockResolvedValueOnce(['opencode', 'amp'] as any);      // agent select (2nd)
       vi.mocked((prompts as any).select).mockResolvedValue('copy');
       vi.mocked(copySkills).mockResolvedValue([
         { skill: 'my-skill', status: 'copied' },
       ]);
 
       const { linkCommand } = await import('./link.js');
-      await linkCommand({ agents: ['cursor', 'opencode'], project: true });
+      await linkCommand({ agents: ['opencode', 'amp'], project: true });
 
       // Both share .agents/skills, so only ONE copySkills call
       expect(copySkills).toHaveBeenCalledOnce();
