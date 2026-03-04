@@ -42,7 +42,7 @@ vi.mock('./link.js', () => ({ linkCommand: vi.fn() }));
 
 describe('pullCommand', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('module exports a pullCommand function', async () => {

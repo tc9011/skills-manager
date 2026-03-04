@@ -41,7 +41,7 @@ vi.mock('node:fs', async () => {
 
 describe('linkCommand', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('throws CliError for invalid agent IDs', async () => {

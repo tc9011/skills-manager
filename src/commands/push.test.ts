@@ -33,7 +33,7 @@ vi.mock('../git-ops.js', () => ({
 
 describe('push command logic', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('module exports a pushCommand function', async () => {

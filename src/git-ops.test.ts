@@ -140,7 +140,7 @@ describe('ensureGitignore', () => {
 // ---------------------------------------------------------------------------
 describe('getRepoRemoteUrl', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('returns fetch URL when origin remote exists', async () => {
@@ -184,7 +184,7 @@ describe('pushSkills', () => {
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'push-test-'));
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   afterEach(async () => {
@@ -324,7 +324,7 @@ describe('pullSkills', () => {
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'pull-test-'));
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   afterEach(async () => {
@@ -477,7 +477,7 @@ describe('ensureGitRepo', () => {
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'ensure-git-test-'));
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   afterEach(async () => {
@@ -518,7 +518,7 @@ describe('ensureGitRepo', () => {
 // ---------------------------------------------------------------------------
 describe('ensureRemote', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('returns existing remote URL when origin is already configured', async () => {
@@ -548,7 +548,7 @@ describe('ensureRemote', () => {
 // ---------------------------------------------------------------------------
 describe('createGitHubRepo', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('runs gh repo create with --private flag', () => {

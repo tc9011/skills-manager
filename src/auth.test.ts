@@ -25,7 +25,7 @@ describe('getGitHubToken', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     process.env = { ...originalEnv };
     delete process.env.GITHUB_TOKEN;
     delete process.env.GH_TOKEN;
@@ -77,7 +77,7 @@ describe('ensureGitHubToken', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     process.env = { ...originalEnv };
     delete process.env.GITHUB_TOKEN;
     delete process.env.GH_TOKEN;

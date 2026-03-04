@@ -11,7 +11,7 @@ const mockReadFile = vi.mocked(readFile);
 
 describe('readLockFile', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('parses valid lock file', async () => {
@@ -64,7 +64,7 @@ describe('readLockFile', () => {
 
 describe('getLastSelectedAgents', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('returns lastSelectedAgents filtered to valid AgentIds', async () => {
