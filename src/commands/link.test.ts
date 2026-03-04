@@ -323,11 +323,47 @@ describe('linkCommand', () => {
         .mockReturnValueOnce(true);   // for agent multiselect check
 
       const { linkCommand } = await import('./link.js');
-      await linkCommand({ agents: ['cursor'], project: true });
+      // Do NOT pass agents so the interactive prompt is shown
+      await linkCommand({ project: true });
 
       expect(prompts.cancel).toHaveBeenCalledWith('No agents selected.');
       expect(copySkills).not.toHaveBeenCalled();
       expect(createProjectSymlinks).not.toHaveBeenCalled();
+    });
+
+    it('skips all prompts in project mode when --agents, --skills, --mode provided', async () => {
+      vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill', 'other-skill']);
+      vi.mocked(copySkills).mockResolvedValue([
+        { skill: 'my-skill', status: 'copied' },
+      ]);
+
+      const { linkCommand } = await import('./link.js');
+      await linkCommand({ agents: ['cursor'], project: true, skills: ['my-skill'], mode: 'copy' });
+
+      // No interactive prompts should be called
+      expect(prompts.multiselect).not.toHaveBeenCalled();
+      expect(prompts.select).not.toHaveBeenCalled();
+      expect(copySkills).toHaveBeenCalledOnce();
+      const callArgs = vi.mocked(copySkills).mock.calls[0];
+      expect(callArgs[2]).toEqual(['my-skill']);
+    });
+
+    it('throws CliError for unknown skills in --skills', async () => {
+      vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+
+      const { linkCommand } = await import('./link.js');
+      await expect(
+        linkCommand({ agents: ['cursor'], project: true, skills: ['nonexistent'], mode: 'copy' }),
+      ).rejects.toThrow(CliError);
+    });
+
+    it('throws CliError for invalid --mode value', async () => {
+      vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+
+      const { linkCommand } = await import('./link.js');
+      await expect(
+        linkCommand({ agents: ['cursor'], project: true, skills: ['my-skill'], mode: 'invalid' }),
+      ).rejects.toThrow(CliError);
     });
 
     it('does not show skill multiselect in global mode', async () => {
@@ -344,5 +380,19 @@ describe('linkCommand', () => {
       // Only one multiselect call (agents), NOT two
       expect(prompts.multiselect).toHaveBeenCalledOnce();
     });
+  });
+
+  it('skips agent prompt in global mode when --agents provided', async () => {
+    vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+    vi.mocked(createSkillSymlinks).mockResolvedValue([
+      { skill: 'my-skill', status: 'created' },
+    ]);
+
+    const { linkCommand } = await import('./link.js');
+    await linkCommand({ agents: ['cursor'] });
+
+    // No multiselect prompt — agents provided via CLI
+    expect(prompts.multiselect).not.toHaveBeenCalled();
+    expect(createSkillSymlinks).toHaveBeenCalledOnce();
   });
 });

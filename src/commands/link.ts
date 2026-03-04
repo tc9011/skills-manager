@@ -7,7 +7,7 @@ import { getLastSelectedAgents } from '../lockfile.js';
 import { createSkillSymlinks, listCanonicalSkills, copySkills, createProjectSymlinks } from '../linker.js';
 import * as p from '@clack/prompts';
 
-export async function linkCommand(options: { agents?: string[]; project?: boolean }): Promise<void> {
+export async function linkCommand(options: { agents?: string[]; project?: boolean; skills?: string[]; mode?: string }): Promise<void> {
   p.intro('skills-manager link');
 
   // 1. Read lock file for lastSelectedAgents
@@ -42,68 +42,94 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
   if (options.project) {
     // Project mode prompt order: skills → copy/symlink → agents
 
-    // 3a. Select skills (no pre-selection in project mode)
-    const skillChoices = skills.map(name => ({
-      value: name,
-      label: name,
-    }));
+    // 3a. Select skills — skip prompt if --skills provided
+    let selectedSkills: string[];
+    if (options.skills?.length) {
+      const skillSet = new Set(skills);
+      const invalid = options.skills.filter(s => !skillSet.has(s));
+      if (invalid.length > 0) {
+        p.cancel(`Unknown skill(s): ${invalid.join(', ')}. Available: ${skills.join(', ')}`);
+        throw new CliError(`Unknown skill(s): ${invalid.join(', ')}`);
+      }
+      selectedSkills = options.skills;
+    } else {
+      const skillChoices = skills.map(name => ({
+        value: name,
+        label: name,
+      }));
 
-    const pickedSkills = await p.multiselect<string>({
-      message: 'Select skills to link:',
-      options: skillChoices,
-      required: false,
-    });
+      const pickedSkills = await p.multiselect<string>({
+        message: 'Select skills to link:',
+        options: skillChoices,
+        required: false,
+      });
 
-    if (p.isCancel(pickedSkills) || !pickedSkills.length) {
-      p.cancel('No skills selected.');
-      return;
+      if (p.isCancel(pickedSkills) || !pickedSkills.length) {
+        p.cancel('No skills selected.');
+        return;
+      }
+
+      selectedSkills = pickedSkills as string[];
     }
 
-    const selectedSkills = pickedSkills as string[];
+    // 3b. Select copy vs symlink — skip prompt if --mode provided
+    let mode: string;
+    if (options.mode) {
+      if (options.mode !== 'copy' && options.mode !== 'symlink') {
+        p.cancel(`Invalid mode '${options.mode}'. Must be 'copy' or 'symlink'.`);
+        throw new CliError(`Invalid mode '${options.mode}'. Must be 'copy' or 'symlink'.`);
+      }
+      mode = options.mode;
+    } else {
+      const modeResult = await p.select({
+        message: 'How should skills be added to the project?',
+        options: [
+          { value: 'copy', label: 'Copy files', hint: 'recommended — independent copies' },
+          { value: 'symlink', label: 'Create symlinks', hint: 'links to ~/.agents/skills' },
+        ],
+        initialValue: 'copy',
+      });
 
-    // 3b. Select copy vs symlink
-    const mode = await p.select({
-      message: 'How should skills be added to the project?',
-      options: [
-        { value: 'copy', label: 'Copy files', hint: 'recommended — independent copies' },
-        { value: 'symlink', label: 'Create symlinks', hint: 'links to ~/.agents/skills' },
-      ],
-      initialValue: 'copy',
-    });
-
-    if (p.isCancel(mode)) {
-      p.cancel('Cancelled.');
-      return;
+      if (p.isCancel(modeResult)) {
+        p.cancel('Cancelled.');
+        return;
+      }
+      mode = modeResult as string;
     }
 
-    // 3c. Select agents
-    const agentChoices = agents.map(id => {
-      const projectPath = agentRegistry[id].projectPath;
-      const targetDir = join(process.cwd(), projectPath);
-      const dirExists = existsSync(targetDir);
-      return {
-        value: id as string,
-        label: `${agentRegistry[id].displayName} (${id})`,
-        hint: dirExists ? projectPath : `${projectPath} — directory will be created`,
-      };
-    });
+    // 3c. Select agents — skip prompt if --agents provided
+    let selectedAgents: AgentId[];
+    if (options.agents?.length) {
+      selectedAgents = agents;
+    } else {
+      const agentChoices = agents.map(id => {
+        const projectPath = agentRegistry[id].projectPath;
+        const targetDir = join(process.cwd(), projectPath);
+        const dirExists = existsSync(targetDir);
+        return {
+          value: id as string,
+          label: `${agentRegistry[id].displayName} (${id})`,
+          hint: dirExists ? projectPath : `${projectPath} — directory will be created`,
+        };
+      });
 
-    const selected = await p.multiselect<string>({
-      message: 'Select agents to link skills to:',
-      options: agentChoices,
-      initialValues: computeInitialValues(agents, agentChoices),
-      required: false,
-    });
+      const selected = await p.multiselect<string>({
+        message: 'Select agents to link skills to:',
+        options: agentChoices,
+        initialValues: computeInitialValues(agents, agentChoices),
+        required: false,
+      });
 
-    if (p.isCancel(selected) || !selected.length) {
-      p.cancel('No agents selected.');
-      return;
+      if (p.isCancel(selected) || !selected.length) {
+        p.cancel('No agents selected.');
+        return;
+      }
+
+      const validSelected = new Set(Object.keys(agentRegistry));
+      selectedAgents = (selected as string[]).filter(
+        (id): id is AgentId => validSelected.has(id)
+      );
     }
-
-    const validSelected = new Set(Object.keys(agentRegistry));
-    const selectedAgents = (selected as string[]).filter(
-      (id): id is AgentId => validSelected.has(id)
-    );
 
     // 3d. Execute: group by projectPath, copy/link
     const groups = groupAgentsByProjectPath(selectedAgents);
@@ -151,33 +177,38 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
   } else {
     // Global mode: agents → link all skills
 
-    // 3a. Select agents
-    const agentChoices = agents.map(id => {
-      const globalPath = getAgentGlobalPath(id);
-      const dirExists = existsSync(globalPath);
-      return {
-        value: id as string,
-        label: `${agentRegistry[id].displayName} (${id})`,
-        hint: dirExists ? globalPath : `${globalPath} — directory will be created`,
-      };
-    });
+    // 3a. Select agents — skip prompt if --agents provided
+    let selectedAgents: AgentId[];
+    if (options.agents?.length) {
+      selectedAgents = agents;
+    } else {
+      const agentChoices = agents.map(id => {
+        const globalPath = getAgentGlobalPath(id);
+        const dirExists = existsSync(globalPath);
+        return {
+          value: id as string,
+          label: `${agentRegistry[id].displayName} (${id})`,
+          hint: dirExists ? globalPath : `${globalPath} — directory will be created`,
+        };
+      });
 
-    const selected = await p.multiselect<string>({
-      message: 'Select agents to link skills to:',
-      options: agentChoices,
-      initialValues: computeInitialValues(agents, agentChoices),
-      required: false,
-    });
+      const selected = await p.multiselect<string>({
+        message: 'Select agents to link skills to:',
+        options: agentChoices,
+        initialValues: computeInitialValues(agents, agentChoices),
+        required: false,
+      });
 
-    if (p.isCancel(selected) || !selected.length) {
-      p.cancel('No agents selected.');
-      return;
+      if (p.isCancel(selected) || !selected.length) {
+        p.cancel('No agents selected.');
+        return;
+      }
+
+      const validSelected = new Set(Object.keys(agentRegistry));
+      selectedAgents = (selected as string[]).filter(
+        (id): id is AgentId => validSelected.has(id)
+      );
     }
-
-    const validSelected = new Set(Object.keys(agentRegistry));
-    const selectedAgents = (selected as string[]).filter(
-      (id): id is AgentId => validSelected.has(id)
-    );
 
     // 3b. Link all skills for each agent
     for (const agentId of selectedAgents) {

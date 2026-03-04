@@ -61,22 +61,23 @@ Read `.skill-lock.json`, create **relative** symlinks from each agent's global s
 
 ```bash
 npx @tc9011/skills-manager link                          # interactive multiselect
-npx @tc9011/skills-manager link --agents cursor opencode # specific agents
+npx @tc9011/skills-manager link --agents cursor opencode # non-interactive (skips prompt)
 ```
 
-Selection is remembered across runs.
+When `--agents` is provided, the prompt is skipped entirely. Selection is remembered across runs.
 
 ### link --project
 
-Link or copy skills to current working directory. Three-step interactive flow:
+Link or copy skills to current working directory. Three-step interactive flow (all skippable via flags):
 
-1. **Select skills** — choose which skills (none pre-selected)
-2. **Copy or symlink** — copy (recommended) or absolute symlinks
-3. **Select agents** — choose agents for project-level setup
+1. **Select skills** (`--skills`) — choose which skills (none pre-selected)
+2. **Copy or symlink** (`--mode`) — copy (default, recommended) or absolute symlinks
+3. **Select agents** (`--agents`) — choose agents for project-level setup
 
 ```bash
 cd /path/to/project
-npx @tc9011/skills-manager link --project
+npx @tc9011/skills-manager link --project                                              # interactive
+npx @tc9011/skills-manager link --project --agents cursor --skills my-skill --mode copy # non-interactive
 ```
 
 Agents sharing the same projectPath are deduplicated.

@@ -37,8 +37,8 @@ export const SKILL_LOCK_PATH = join(homedir(), '.agents', '.skill-lock.json');
 ```
 push:  ~/.agents/ → git add → git commit → git push origin <branch>
 pull:  git pull --rebase → auto-run link
-link:  read .skill-lock.json → detect local agents → multiselect → create relative symlinks
-link --project: read .skill-lock.json → select skills → choose copy/symlink → select agents → group by projectPath → copy/link to CWD
+link:  read .skill-lock.json → [--agents or multiselect] → create relative symlinks
+link --project: read .skill-lock.json → [--skills or select skills] → [--mode or select copy/symlink] → [--agents or select agents] → group by projectPath → copy/link to CWD
 ```
 
 ## Critical Constraints

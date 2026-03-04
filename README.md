@@ -99,10 +99,18 @@ skills-manager link --agents cursor opencode claude-code
 
 | Option | Description |
 |--------|-------------|
-| `-a, --agents <ids...>` | Agent IDs to link (default: from lock file) |
+| `-a, --agents <ids...>` | Agent IDs to link (skips agent prompt when provided) |
 | `-p, --project` | Link skills to project directory (CWD) instead of global paths |
-
+| `-s, --skills <skills...>` | Skill names to link (project mode only, skips skill prompt) |
+| `--mode <mode>` | `copy` or `symlink` (project mode only, default: `copy`, skips prompt) |
 An interactive multiselect prompt lets you pick which agents to link. Only agents with local directories are pre-selected. Your selection is remembered for next time.
+
+When `--agents` is provided, the agent selection prompt is skipped entirely — useful for scripting and AI agent automation:
+
+```bash
+# Non-interactive: link all skills to specific agents
+skills-manager link --agents cursor opencode
+```
 
 **Symlink model:**
 
@@ -119,6 +127,12 @@ When using `--project` (or `-p`), you'll go through three interactive prompts:
 2. **Copy or symlink** — copy files (default, recommended) or create absolute symlinks
 3. **Select agents** — choose which agents to set up project-level skills for
 
+All three prompts can be skipped by providing `--skills`, `--mode`, and `--agents` on the command line:
+
+```bash
+# Fully non-interactive project link
+skills-manager link --project --agents cursor claude-code --skills my-skill --mode copy
+```
 Example project structure after `link --project`:
 ```
 ./project/
