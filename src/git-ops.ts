@@ -68,15 +68,6 @@ function buildAuthUrl(cleanUrl: string, token: string | null): string {
 }
 
 /**
- * Check if a git repo has uncommitted changes.
- */
-async function _hasUncommittedChanges(dir: string): Promise<boolean> {
-  const git = simpleGit(dir);
-  const status = await git.status();
-  return !status.isClean();
-}
-
-/**
  * Get the remote URL of an existing repo (origin).
  */
 export async function getRepoRemoteUrl(dir: string): Promise<string | null> {
