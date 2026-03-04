@@ -236,6 +236,20 @@ describe('pushSkills', () => {
     expect(mockGit.remote).toHaveBeenNthCalledWith(2, ['set-url', 'origin', 'https://github.com/user/repo.git']);
   });
 
+  it('throws when token is provided but origin remote URL is empty', async () => {
+    mockGit.status.mockResolvedValue({ isClean: () => false });
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.commit.mockResolvedValue(undefined);
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.getRemotes.mockResolvedValue([
+      { name: 'origin', refs: { fetch: '', push: '' } },
+    ]);
+
+    await expect(pushSkills(tempDir, 'test', 'ghp_token')).rejects.toThrow(/No origin remote URL configured/);
+    expect(mockGit.push).not.toHaveBeenCalled();
+    expect(mockGit.remote).not.toHaveBeenCalled();
+  });
+
   it('pushes without token when token is null', async () => {
     mockGit.status.mockResolvedValue({ isClean: () => false });
     mockGit.add.mockResolvedValue(undefined);
@@ -433,6 +447,34 @@ describe('pullSkills', () => {
     expect(mockGit.remote).toHaveBeenCalledWith(['set-url', 'origin', 'https://github.com/user/repo.git']);
     expect(mockGit.fetch).toHaveBeenCalledWith('origin');
     expect(mockGit.pull).toHaveBeenCalledWith('origin', 'master', { '--rebase': null });
+  });
+
+  it('aborts rebase and throws user-friendly error when pull hits conflicts', async () => {
+    await mkdir(join(tempDir, '.git'));
+
+    mockGit.fetch.mockResolvedValue(undefined);
+    mockGit.raw.mockResolvedValue('HEAD branch: main\n');
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.revparse.mockResolvedValue('aaa111');
+    mockGit.pull.mockRejectedValue(new Error('CONFLICT (content): Merge conflict in skills/test'));
+    mockGit.rebase.mockResolvedValue(undefined);
+
+    await expect(pullSkills(tempDir, 'https://github.com/user/repo.git')).rejects.toThrow(/Rebase conflict detected/);
+    expect(mockGit.rebase).toHaveBeenCalledWith(['--abort']);
+  });
+
+  it('falls back to local branch when remote default branch is unavailable (offline)', async () => {
+    await mkdir(join(tempDir, '.git'));
+
+    mockGit.fetch.mockResolvedValue(undefined);
+    mockGit.raw.mockRejectedValue(new Error('offline'));
+    mockGit.branchLocal.mockResolvedValue({ current: 'develop' });
+    mockGit.revparse.mockResolvedValueOnce('aaa111').mockResolvedValueOnce('bbb222');
+    mockGit.pull.mockResolvedValue(undefined);
+
+    await pullSkills(tempDir, 'https://github.com/user/repo.git');
+
+    expect(mockGit.pull).toHaveBeenCalledWith('origin', 'develop', { '--rebase': null });
   });
 
   it('returns pulled: false when pull brings no changes (HEAD unchanged)', async () => {
