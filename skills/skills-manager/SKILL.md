@@ -9,17 +9,12 @@ CLI companion to [vercel-labs/skills](https://github.com/vercel-labs/skills) —
 
 ## Install
 
-The npm package name is `@tc9011/skills-manager` (scoped package).
-
-> **IMPORTANT**: The package name contains an `@` symbol — this is an npm scope, NOT a file path reference. Always use it exactly as shown.
-
 ```bash
-PKG="@tc9011/skills-manager"
-npx $PKG push          # run directly
-npm install -g $PKG    # or install globally
+npx skills-manager push              # run directly (no install needed)
+npm install -g @tc9011/skills-manager # or install globally
 ```
 
-**If installed globally, replace `npx $PKG` with `skills-manager` in all commands below.**
+**If installed globally, replace `npx skills-manager` with `skills-manager` in all commands below.**
 
 Requires Node.js ≥ 20. [GitHub CLI](https://cli.github.com/) (`gh`) recommended for auth.
 
@@ -48,16 +43,13 @@ If push/pull fails with an auth error, guide the user to set up ONE of:
 
 ## Commands
 
-All commands below use `PKG="@tc9011/skills-manager"`. Set this variable first or replace `$PKG` with the full package name.
-
 ### push
 
 Commit and push `~/.agents/` to GitHub.
 
 ```bash
-PKG="@tc9011/skills-manager"
-npx $PKG push                    # auto-generated commit message
-npx $PKG push -m "add new skill" # custom message
+npx skills-manager push                    # auto-generated commit message
+npx skills-manager push -m "add new skill" # custom message
 ```
 
 First run auto-initializes git repo + prompts for remote. On conflict (remote ahead), rejects with instructions to pull first.
@@ -67,10 +59,9 @@ First run auto-initializes git repo + prompts for remote. On conflict (remote ah
 Pull from GitHub. Auto-runs `link` afterward unless skipped.
 
 ```bash
-PKG="@tc9011/skills-manager"
-npx $PKG pull --repo owner/name  # specify repo
-npx $PKG pull                    # use existing remote
-npx $PKG pull --skip-link        # pull only, don't auto-link
+npx skills-manager pull --repo owner/name  # specify repo
+npx skills-manager pull                    # use existing remote
+npx skills-manager pull --skip-link        # pull only, don't auto-link
 ```
 
 On rebase conflict, aborts and shows manual resolution steps.
@@ -80,9 +71,8 @@ On rebase conflict, aborts and shows manual resolution steps.
 Read `.skill-lock.json`, create **relative** symlinks from each agent's global skills directory to `~/.agents/skills/`.
 
 ```bash
-PKG="@tc9011/skills-manager"
-npx $PKG link                          # interactive multiselect
-npx $PKG link --agents cursor opencode # non-interactive (skips prompt)
+npx skills-manager link                          # interactive multiselect
+npx skills-manager link --agents cursor opencode # non-interactive (skips prompt)
 ```
 
 When `--agents` is provided, the prompt is skipped entirely. Selection is remembered across runs.
@@ -96,10 +86,9 @@ Link or copy skills to current working directory. Three-step interactive flow (a
 3. **Select agents** (`--agents`) — choose agents for project-level setup
 
 ```bash
-PKG="@tc9011/skills-manager"
 cd /path/to/project
-npx $PKG link --project                                              # interactive
-npx $PKG link --project --agents cursor --skills my-skill --mode copy # non-interactive
+npx skills-manager link --project                                              # interactive
+npx skills-manager link --project --agents cursor --skills my-skill --mode copy # non-interactive
 ```
 
 Agents sharing the same projectPath are deduplicated.
@@ -109,24 +98,21 @@ Agents sharing the same projectPath are deduplicated.
 ### First-time setup (new machine)
 
 ```bash
-PKG="@tc9011/skills-manager"
-npx $PKG pull --repo owner/my-skills   # clone + auto-link
+npx skills-manager pull --repo owner/my-skills   # clone + auto-link
 ```
 
 ### Daily sync
 
 ```bash
-PKG="@tc9011/skills-manager"
-npx $PKG pull    # fetch latest + re-link
-npx $PKG push    # backup local changes
+npx skills-manager pull    # fetch latest + re-link
+npx skills-manager push    # backup local changes
 ```
 
 ### Project-level skills
 
 ```bash
-PKG="@tc9011/skills-manager"
 cd /path/to/project
-npx $PKG link --project
+npx skills-manager link --project
 # Creates e.g. .agents/skills/, .claude/skills/ in CWD
 ```
 
