@@ -30,13 +30,13 @@ A CLI companion to [vercel-labs/skills](https://github.com/vercel-labs/skills) â
 
 ```bash
 # Run directly (no install)
-npx @tc9011/skills-manager push
+npx skills-manager push
 
 # Or install globally
 npm install -g @tc9011/skills-manager
 ```
 
-> **Tip:** If installed globally, you can use `skills-manager` instead of `npx @tc9011/skills-manager` in all commands below.
+> **Tip:** If installed globally, you can use `skills-manager` instead of `npx skills-manager` in all commands below.
 
 **Requirements:** Node.js â‰¥ 20, [GitHub CLI](https://cli.github.com/) (`gh`) recommended for auth.
 
