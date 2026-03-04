@@ -206,7 +206,7 @@ describe('linkCommand', () => {
       ]);
 
       const { linkCommand } = await import('./link.js');
-      await linkCommand({ agents: ['opencode', 'amp'], project: true });
+      await linkCommand({ agents: ['cursor', 'opencode'], project: true });
 
       // Both share .agents/skills, so only ONE copySkills call
       expect(copySkills).toHaveBeenCalledOnce();

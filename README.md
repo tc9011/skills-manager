@@ -152,6 +152,7 @@ If none found, you'll be prompted to run `gh auth login`. The `link` command doe
 | Amp | `amp` | `$XDG_CONFIG_HOME/agents/skills` |
 | Cline | `cline` | `~/.agents/skills` |
 | Codex | `codex` | `$CODEX_HOME/skills` |
+| Cursor | `cursor` | `~/.cursor/skills` |
 | Gemini CLI | `gemini-cli` | `~/.gemini/skills` |
 | GitHub Copilot | `github-copilot` | `~/.copilot/skills` |
 | Kimi Code CLI | `kimi-cli` | `$XDG_CONFIG_HOME/agents/skills` |
@@ -174,7 +175,6 @@ If none found, you'll be prompted to run `gh auth login`. The `link` command doe
 | Command Code | `command-code` | `~/.commandcode/skills` |
 | Continue | `continue` | `~/.continue/skills` |
 | Cortex Code | `cortex` | `~/.snowflake/cortex/skills` |
-| Cursor | `cursor` | `~/.cursor/skills` |
 | Crush | `crush` | `$XDG_CONFIG_HOME/crush/skills` |
 | Droid | `droid` | `~/.factory/skills` |
 | Goose | `goose` | `$XDG_CONFIG_HOME/goose/skills` |
