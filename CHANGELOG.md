@@ -1,3 +1,10 @@
+## [0.6.1](https://github.com/tc9011/skills-manager/compare/v0.6.0...v0.6.1) (2026-03-04)
+
+
+### Bug Fixes
+
+* update placeholder text for GitHub repo input in pull prompt ([c6fb7ba](https://github.com/tc9011/skills-manager/commit/c6fb7baeebbf710970fd7ae7abe5f0cc6aca473f))
+
 # [0.6.0](https://github.com/tc9011/skills-manager/compare/v0.5.1...v0.6.0) (2026-03-04)
 
 
