@@ -30,7 +30,7 @@ export async function pullCommand(options: { repo?: string; skipLink?: boolean }
 
       const repo = await p.text({
         message: 'Enter GitHub repo to pull from (owner/name):',
-        placeholder: 'e.g. tc9011/my-skills',
+        placeholder: 'e.g. xxxx/my-skills',
       });
 
       if (p.isCancel(repo)) {
