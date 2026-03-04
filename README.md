@@ -233,6 +233,21 @@ skills-manager link --project reads .skill-lock.json → select skills → choos
 ./my-project/.agents/skills/my-skill    ← copied from ~/.agents/skills/
 ./my-project/.claude/skills/my-skill    ← copied from ~/.agents/skills/
 ```
+## Skill
+
+This project includes a skill at `skills/skills-manager/` that teaches AI agents how to operate the CLI — push, pull, and link commands.
+
+```bash
+# Install via vercel-labs/skills CLI
+npx skills add tc9011/skills-manager
+
+# Install a specific skill to specific agents
+npx skills add tc9011/skills-manager --skill skills-manager -a opencode -a claude-code
+
+# Install globally (available across all projects)
+npx skills add tc9011/skills-manager -g
+```
+
 ## Contributing
 
 ### Setup
