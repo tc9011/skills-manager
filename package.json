@@ -1,6 +1,6 @@
 {
   "name": "@tc9011/skills-manager",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "Backup and restore AI agent skills to GitHub",
   "type": "module",
   "license": "MIT",

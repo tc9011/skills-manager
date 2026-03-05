@@ -1,3 +1,10 @@
+## [0.10.2](https://github.com/tc9011/skills-manager/compare/v0.10.1...v0.10.2) (2026-03-05)
+
+
+### Bug Fixes
+
+* gracefully handle missing gh CLI during push repo creation ([bb664e7](https://github.com/tc9011/skills-manager/commit/bb664e768fbbc386ee229f212b03c42b981319a2))
+
 ## [0.10.1](https://github.com/tc9011/skills-manager/compare/v0.10.0...v0.10.1) (2026-03-05)
 
 
