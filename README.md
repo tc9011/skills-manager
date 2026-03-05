@@ -36,7 +36,7 @@ npx @tc9011/skills-manager push
 npm install -g @tc9011/skills-manager
 ```
 
-> **Tip:** If installed globally, you can use `skills-manager` instead of `npx @tc9011/skills-manager` in all commands below.
+> **Tip:** After global install, use `sm` (or the full name `skills-manager`) instead of `npx @tc9011/skills-manager` in all commands below.
 
 **Requirements:** Node.js ≥ 20, [GitHub CLI](https://cli.github.com/) (`gh`) recommended for auth.
 
@@ -44,43 +44,43 @@ npm install -g @tc9011/skills-manager
 
 ```bash
 # 1. Backup skills to GitHub
-skills-manager push
+sm push
 
 # 2. Restore on a new machine
-skills-manager pull --repo owner/my-skills
+sm pull --repo owner/my-skills
 
 # 3. Re-link skills to agents (auto-runs after pull)
-skills-manager link
+sm link
 
 # 4. Link skills to current project directory
-skills-manager link --project
+sm link --project
 ```
 
 On first run, `push` and `pull` will interactively set up a git repo and remote if `~/.agents/` isn't already one.
 
 ## Commands
 
-### `skills-manager push`
+### `sm push`
 
 Commits and pushes `~/.agents/` to its configured GitHub remote.
 
 ```bash
-skills-manager push
-skills-manager push -m "add new debugging skill"
+sm push
+sm push -m "add new debugging skill"
 ```
 
 | Option | Description |
 |--------|-------------|
 | `-m, --message <msg>` | Custom commit message (default: auto-generated) |
 
-### `skills-manager pull`
+### `sm pull`
 
 Pulls from GitHub and automatically runs `link`.
 
 ```bash
-skills-manager pull --repo tc9011/my-skills
-skills-manager pull                          # uses existing remote
-skills-manager pull --skip-link              # pull only, don't link
+sm pull --repo tc9011/my-skills
+sm pull                          # uses existing remote
+sm pull --skip-link              # pull only, don't link
 ```
 
 | Option | Description |
@@ -88,13 +88,13 @@ skills-manager pull --skip-link              # pull only, don't link
 | `-r, --repo <owner/name>` | GitHub repo to pull from |
 | `--skip-link` | Skip automatic agent linking after pull |
 
-### `skills-manager link`
+### `sm link`
 
 Reads `.skill-lock.json` and creates relative symlinks from each agent's skills directory to the canonical `~/.agents/skills/`.
 
 ```bash
-skills-manager link
-skills-manager link --agents cursor opencode claude-code
+sm link
+sm link --agents cursor opencode claude-code
 ```
 
 | Option | Description |
@@ -109,7 +109,7 @@ When `--agents` is provided, the agent selection prompt is skipped entirely — 
 
 ```bash
 # Non-interactive: link all skills to specific agents
-skills-manager link --agents cursor opencode
+sm link --agents cursor opencode
 ```
 
 **Symlink model:**
@@ -131,7 +131,7 @@ All three prompts can be skipped by providing `--skills`, `--mode`, and `--agent
 
 ```bash
 # Fully non-interactive project link
-skills-manager link --project --agents cursor claude-code --skills my-skill --mode copy
+sm link --project --agents cursor claude-code --skills my-skill --mode copy
 ```
 Example project structure after `link --project`:
 ```
@@ -238,7 +238,7 @@ If none are found, git will attempt the operation unauthenticated — which work
     ├── my-skill/
     └── another-skill/
 
-skills-manager link reads .skill-lock.json → creates relative symlinks:
+sm link reads .skill-lock.json → creates relative symlinks:
 
 ~/.cursor/skills/my-skill        → ../../.agents/skills/my-skill
 ~/.claude/skills/my-skill        → ../../.agents/skills/my-skill
@@ -246,7 +246,7 @@ skills-manager link reads .skill-lock.json → creates relative symlinks:
 ```
 
 ```
-skills-manager link --project reads .skill-lock.json → select skills → choose copy/symlink → select agents → copies/symlinks to CWD:
+sm link --project reads .skill-lock.json → select skills → choose copy/symlink → select agents → copies/symlinks to CWD:
 
 ./my-project/.agents/skills/my-skill    ← copied from ~/.agents/skills/
 ./my-project/.claude/skills/my-skill    ← copied from ~/.agents/skills/

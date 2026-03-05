@@ -24,7 +24,8 @@
     "vercel-skills"
   ],
   "bin": {
-    "skills-manager": "./dist/index.js"
+    "skills-manager": "./dist/index.js",
+    "sm": "./dist/index.js"
   },
   "files": [
     "dist"
