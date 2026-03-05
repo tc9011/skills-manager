@@ -132,32 +132,44 @@ export async function pushSkills(
   await git.add('-A');
   // Check if anything to commit
   const status = await git.status();
-  if (status.isClean()) {
-    return { committed: false, pushed: false, suspiciousFiles: suspicious.length > 0 ? suspicious : undefined };
+  let committed = false;
+
+  if (!status.isClean()) {
+    // Commit
+    await git.commit(msg);
+    committed = true;
   }
 
-  // Commit
-  await git.commit(msg);
-
-  // Push — if token provided, temporarily set the remote URL with auth, then restore
+  // Push — always check if local is ahead of remote (handles previously committed but unpushed work)
   const branch = await getCurrentBranch(git);
+  let aheadCount: number;
+  try {
+    const count = await git.raw(['rev-list', `origin/${branch}..HEAD`, '--count']);
+    aheadCount = parseInt(count.trim(), 10) || 0;
+  } catch {
+    // Remote branch may not exist yet (first push) — treat as ahead if we committed
+    aheadCount = committed ? 1 : 0;
+  }
 
+  if (aheadCount === 0) {
+    return { committed: false, pushed: false, suspiciousFiles: suspicious.length > 0 ? suspicious : undefined };
+  }
   const doPush = async () => {
     try {
-      await git.push('origin', branch);
+      await git.push('origin', branch, { '--set-upstream': null });
     } catch (err) {
       const msg = String(err);
       if (msg.includes('non-fast-forward') || msg.includes('fetch first') || msg.includes('rejected') || msg.includes('failed to push')) {
         throw new Error(
           'Push rejected — remote contains commits that you do not have locally.\n'
           + 'Pull the latest changes first, resolve any conflicts, then push again:\n'
-          + '  skills-manager pull\n'
-          + '  skills-manager push\n'
+          + '  sm pull\n'
+          + '  sm push\n'
           + '\n'
           + 'Or resolve manually:\n'
           + '  cd ~/.agents\n'
           + `  git pull --rebase origin ${branch}   # resolve conflicts if any, then git rebase --continue\n`
-          + '  skills-manager push',
+          + '  sm push',
           { cause: err },
         );
       }
@@ -184,7 +196,7 @@ export async function pushSkills(
     await doPush();
   }
 
-  return { committed: true, pushed: true, suspiciousFiles: suspicious.length > 0 ? suspicious : undefined };
+  return { committed, pushed: true, suspiciousFiles: suspicious.length > 0 ? suspicious : undefined };
 }
 
 /**

@@ -139,4 +139,38 @@ describe('push command logic', () => {
 
     expect(mockPrompts.note).toHaveBeenCalledOnce();
   });
+
+  it('throws CliError when user cancels shouldCreate confirm prompt', async () => {
+    const { CliError } = await import('../errors.js');
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
+    vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: true });
+    vi.mocked(getRepoRemoteUrl).mockResolvedValue(null);
+    mockPrompts.text.mockResolvedValue('owner/my-skills');
+    vi.mocked(ensureRemote).mockResolvedValue({
+      remoteUrl: 'https://github.com/owner/my-skills.git',
+      added: true,
+    });
+    // Simulate user pressing Ctrl+C on confirm prompt
+    mockPrompts.confirm.mockResolvedValue(Symbol('cancel'));
+    mockPrompts.isCancel.mockImplementation((val) => typeof val === 'symbol');
+
+    const { pushCommand } = await import('./push.js');
+    await expect(pushCommand({})).rejects.toThrow(CliError);
+    expect(pushSkills).not.toHaveBeenCalled();
+  });
+
+  it('shows correct message when committed and pushed', async () => {
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
+    vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: false });
+    vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/user/repo.git');
+    vi.mocked(pushSkills).mockResolvedValue({ committed: false, pushed: true });
+
+    const spinnerStop = vi.fn();
+    mockPrompts.spinner = () => ({ start: vi.fn(), stop: spinnerStop, error: vi.fn() });
+
+    const { pushCommand } = await import('./push.js');
+    await pushCommand({});
+
+    expect(spinnerStop).toHaveBeenCalledWith('Unpushed commits pushed successfully!');
+  });
 });

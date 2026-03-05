@@ -40,6 +40,10 @@ export async function pushCommand(options: { message?: string }): Promise<void> 
     const shouldCreate = await p.confirm({
       message: 'Create this repo on GitHub? (requires gh CLI)',
     });
+    if (p.isCancel(shouldCreate)) {
+      p.cancel('Push cancelled.');
+      throw new CliError('Push cancelled by user.');
+    }
 
     if (shouldCreate === true) {
       createGitHubRepo(repo);
@@ -52,11 +56,12 @@ export async function pushCommand(options: { message?: string }): Promise<void> 
 
   try {
     const result = await pushSkills(AGENTS_DIR, options.message, token);
-    spinner.stop(
-      result.committed
+    const statusMsg = result.pushed
+      ? result.committed
         ? 'Skills pushed successfully!'
-        : 'No changes to push — already up to date.',
-    );
+        : 'Unpushed commits pushed successfully!'
+      : 'No changes to push — already up to date.';
+    spinner.stop(statusMsg);
 
     // Warn about suspicious files that may contain secrets
     if (result.suspiciousFiles?.length) {

@@ -202,13 +202,15 @@ describe('pushSkills', () => {
 
     expect(mockGit.add).toHaveBeenCalledWith('-A');
     expect(mockGit.commit).toHaveBeenCalledWith('test commit');
-    expect(mockGit.push).toHaveBeenCalledWith('origin', 'main');
+    expect(mockGit.push).toHaveBeenCalledWith('origin', 'main', { '--set-upstream': null });
     expect(result).toEqual({ committed: true, pushed: true });
   });
 
-  it('skips commit when working tree is clean', async () => {
+  it('skips commit and push when working tree is clean and not ahead of remote', async () => {
     mockGit.add.mockResolvedValue(undefined);
     mockGit.status.mockResolvedValue({ isClean: () => true });
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.raw.mockResolvedValue('0\n');
 
     const result = await pushSkills(tempDir);
 
@@ -216,6 +218,37 @@ describe('pushSkills', () => {
     expect(mockGit.push).not.toHaveBeenCalled();
     expect(result.committed).toBe(false);
     expect(result.pushed).toBe(false);
+  });
+
+  it('pushes unpushed commits when working tree is clean but local is ahead of remote', async () => {
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.status.mockResolvedValue({ isClean: () => true });
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.raw.mockResolvedValue('2\n');
+    mockGit.push.mockResolvedValue(undefined);
+
+    const result = await pushSkills(tempDir);
+
+    expect(mockGit.commit).not.toHaveBeenCalled();
+    expect(mockGit.push).toHaveBeenCalledWith('origin', 'main', { '--set-upstream': null });
+    expect(result.committed).toBe(false);
+    expect(result.pushed).toBe(true);
+  });
+
+  it('commits and pushes on first push when remote branch does not exist yet', async () => {
+    mockGit.status.mockResolvedValue({ isClean: () => false });
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.commit.mockResolvedValue(undefined);
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    // rev-list fails because origin/main doesn't exist yet
+    mockGit.raw.mockRejectedValue(new Error('unknown revision origin/main'));
+    mockGit.push.mockResolvedValue(undefined);
+
+    const result = await pushSkills(tempDir, 'initial');
+
+    expect(mockGit.commit).toHaveBeenCalledWith('initial');
+    expect(mockGit.push).toHaveBeenCalledWith('origin', 'main', { '--set-upstream': null });
+    expect(result).toEqual({ committed: true, pushed: true });
   });
 
   it('uses token with temporary remote URL and restores clean URL', async () => {
@@ -260,7 +293,7 @@ describe('pushSkills', () => {
     await pushSkills(tempDir, 'test', null);
 
     expect(mockGit.remote).not.toHaveBeenCalled();
-    expect(mockGit.push).toHaveBeenCalledWith('origin', 'master');
+    expect(mockGit.push).toHaveBeenCalledWith('origin', 'master', { '--set-upstream': null });
   });
 
   it('uses auto-generated commit message when none provided', async () => {
@@ -284,7 +317,7 @@ describe('pushSkills', () => {
     mockGit.push.mockRejectedValue(new Error('error: failed to push some refs... non-fast-forward'));
 
     await expect(pushSkills(tempDir, 'test')).rejects.toThrow('Push rejected');
-    await expect(pushSkills(tempDir, 'test')).rejects.toThrow('skills-manager pull');
+    await expect(pushSkills(tempDir, 'test')).rejects.toThrow('sm pull');
   });
 
   it('throws user-friendly error when push is rejected due to fetch first (with token)', async () => {
