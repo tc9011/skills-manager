@@ -1,7 +1,7 @@
 // src/commands/push.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getGitHubToken } from '../auth.js';
-import { pushSkills, getRepoRemoteUrl, ensureGitRepo, ensureRemote, createGitHubRepo } from '../git-ops.js';
+import { pushSkills, getRepoRemoteUrl, ensureGitRepo, ensureRemote, createGitHubRepo, isGhInstalled } from '../git-ops.js';
 
 const mockPrompts = vi.hoisted(() => ({
   intro: vi.fn(),
@@ -28,6 +28,7 @@ vi.mock('../git-ops.js', () => ({
   ensureGitRepo: vi.fn(),
   ensureRemote: vi.fn(),
   createGitHubRepo: vi.fn(),
+  isGhInstalled: vi.fn(),
   buildRemoteUrl: vi.fn((repo: string) => `https://github.com/${repo}.git`),
 }));
 
@@ -66,6 +67,7 @@ describe('push command logic', () => {
       remoteUrl: 'https://github.com/owner/my-skills.git',
       added: true,
     });
+    vi.mocked(isGhInstalled).mockReturnValue(true);
     // User declines creating a remote repo
     mockPrompts.confirm.mockResolvedValue(false);
     vi.mocked(pushSkills).mockResolvedValue({ committed: true, pushed: true });
@@ -88,6 +90,7 @@ describe('push command logic', () => {
       remoteUrl: 'https://github.com/owner/my-skills.git',
       added: true,
     });
+    vi.mocked(isGhInstalled).mockReturnValue(true);
     // User confirms creating repo
     mockPrompts.confirm.mockResolvedValue(true);
     vi.mocked(createGitHubRepo).mockReturnValue(undefined);
@@ -150,6 +153,7 @@ describe('push command logic', () => {
       remoteUrl: 'https://github.com/owner/my-skills.git',
       added: true,
     });
+    vi.mocked(isGhInstalled).mockReturnValue(true);
     // Simulate user pressing Ctrl+C on confirm prompt
     mockPrompts.confirm.mockResolvedValue(Symbol('cancel'));
     mockPrompts.isCancel.mockImplementation((val) => typeof val === 'symbol');
@@ -172,5 +176,45 @@ describe('push command logic', () => {
     await pushCommand({});
 
     expect(spinnerStop).toHaveBeenCalledWith('Unpushed commits pushed successfully!');
+  });
+
+  it('shows note instead of confirm when gh CLI is not installed', async () => {
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
+    vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: true });
+    vi.mocked(getRepoRemoteUrl).mockResolvedValue(null);
+    mockPrompts.text.mockResolvedValue('owner/my-skills');
+    vi.mocked(ensureRemote).mockResolvedValue({
+      remoteUrl: 'https://github.com/owner/my-skills.git',
+      added: true,
+    });
+    vi.mocked(isGhInstalled).mockReturnValue(false);
+    vi.mocked(pushSkills).mockResolvedValue({ committed: true, pushed: true });
+
+    const { pushCommand } = await import('./push.js');
+    await pushCommand({});
+
+    // Should show a note, not a confirm prompt
+    expect(mockPrompts.confirm).not.toHaveBeenCalled();
+    expect(createGitHubRepo).not.toHaveBeenCalled();
+    expect(mockPrompts.note).toHaveBeenCalledWith(
+      expect.stringContaining('gh CLI not found'),
+      expect.stringContaining('GitHub CLI not installed'),
+    );
+    // Should still proceed with push
+    expect(pushSkills).toHaveBeenCalledOnce();
+  });
+
+  it('skips gh check entirely when remote already exists', async () => {
+    vi.mocked(getGitHubToken).mockReturnValue('ghp_test_token');
+    vi.mocked(ensureGitRepo).mockResolvedValue({ initialized: false });
+    vi.mocked(getRepoRemoteUrl).mockResolvedValue('https://github.com/user/repo.git');
+    vi.mocked(pushSkills).mockResolvedValue({ committed: true, pushed: true });
+
+    const { pushCommand } = await import('./push.js');
+    await pushCommand({});
+
+    expect(isGhInstalled).not.toHaveBeenCalled();
+    expect(mockPrompts.confirm).not.toHaveBeenCalled();
+    expect(createGitHubRepo).not.toHaveBeenCalled();
   });
 });

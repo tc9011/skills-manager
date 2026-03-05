@@ -1,6 +1,6 @@
 // src/git-ops.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildRemoteUrl, detectSuspiciousFiles, ensureGitignore, getRepoRemoteUrl, pushSkills, pullSkills, ensureGitRepo, ensureRemote, createGitHubRepo } from './git-ops.js';
+import { buildRemoteUrl, detectSuspiciousFiles, ensureGitignore, getRepoRemoteUrl, pushSkills, pullSkills, ensureGitRepo, ensureRemote, createGitHubRepo, isGhInstalled } from './git-ops.js';
 import { mkdtemp, rm, writeFile, readFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -652,5 +652,30 @@ describe('createGitHubRepo', () => {
     mockExecSync.mockImplementation(() => { throw new Error('gh: command not found'); });
 
     expect(() => createGitHubRepo('owner/my-skills')).toThrow('Failed to create GitHub repository');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isGhInstalled
+// ---------------------------------------------------------------------------
+describe('isGhInstalled', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('returns true when gh --version succeeds', () => {
+    mockExecSync.mockReturnValue('gh version 2.40.0');
+
+    expect(isGhInstalled()).toBe(true);
+    expect(mockExecSync).toHaveBeenCalledWith(
+      'gh --version',
+      expect.objectContaining({ stdio: ['pipe', 'pipe', 'pipe'] }),
+    );
+  });
+
+  it('returns false when gh is not installed', () => {
+    mockExecSync.mockImplementation(() => { throw new Error('command not found: gh'); });
+
+    expect(isGhInstalled()).toBe(false);
   });
 });

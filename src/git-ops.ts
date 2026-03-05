@@ -333,6 +333,19 @@ export async function ensureRemote(
 }
 
 /**
+ * Check whether the `gh` CLI is available on the system PATH.
+ */
+export function isGhInstalled(): boolean {
+  try {
+    execSync('gh --version', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+
+/**
  * Create a GitHub repository using the `gh` CLI.
  * Throws if `gh` is not installed or the command fails.
  */

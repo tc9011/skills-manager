@@ -8,6 +8,7 @@ import {
   ensureGitRepo,
   ensureRemote,
   createGitHubRepo,
+  isGhInstalled,
 } from '../git-ops.js';
 import * as p from '@clack/prompts';
 
@@ -37,18 +38,26 @@ export async function pushCommand(options: { message?: string }): Promise<void> 
 
     await ensureRemote(AGENTS_DIR, repo);
 
-    const shouldCreate = await p.confirm({
-      message: 'Create this repo on GitHub? (requires gh CLI)',
-    });
-    if (p.isCancel(shouldCreate)) {
-      p.cancel('Push cancelled.');
-      throw new CliError('Push cancelled by user.');
-    }
+    if (isGhInstalled()) {
+      const shouldCreate = await p.confirm({
+        message: 'Create this repo on GitHub? (requires gh CLI)',
+      });
+      if (p.isCancel(shouldCreate)) {
+        p.cancel('Push cancelled.');
+        throw new CliError('Push cancelled by user.');
+      }
 
-    if (shouldCreate === true) {
-      createGitHubRepo(repo);
+      if (shouldCreate === true) {
+        createGitHubRepo(repo);
+      }
+    } else {
+      p.note(
+        `gh CLI not found — cannot create the repo automatically.\nPlease create it manually at https://github.com/new and then re-run push.`,
+        '⚠ GitHub CLI not installed',
+      );
     }
   }
+
 
   // 5. Push
   const spinner = p.spinner();
