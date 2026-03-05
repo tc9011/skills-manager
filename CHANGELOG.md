@@ -1,3 +1,10 @@
+# [0.10.0](https://github.com/tc9011/skills-manager/compare/v0.9.1...v0.10.0) (2026-03-05)
+
+
+### Features
+
+* add `sm` as shorthand binary alias for `skills-manager` ([84e2817](https://github.com/tc9011/skills-manager/commit/84e2817b08d75b7af504d3fd162ff96959f3a6e3))
+
 ## [0.9.1](https://github.com/tc9011/skills-manager/compare/v0.9.0...v0.9.1) (2026-03-04)
 
 
