@@ -1,3 +1,10 @@
+## [0.10.1](https://github.com/tc9011/skills-manager/compare/v0.10.0...v0.10.1) (2026-03-05)
+
+
+### Bug Fixes
+
+* push unpushed commits when working tree is clean but local is ahead of remote ([4b17fa0](https://github.com/tc9011/skills-manager/commit/4b17fa054780b0e650cb7ae14413f52ca9490894))
+
 # [0.10.0](https://github.com/tc9011/skills-manager/compare/v0.9.1...v0.10.0) (2026-03-05)
 
 
