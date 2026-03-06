@@ -197,6 +197,7 @@ describe('pushSkills', () => {
     mockGit.commit.mockResolvedValue(undefined);
     mockGit.push.mockResolvedValue(undefined);
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.raw.mockResolvedValue('1\n');
 
     const result = await pushSkills(tempDir, 'test commit');
 
@@ -240,8 +241,10 @@ describe('pushSkills', () => {
     mockGit.add.mockResolvedValue(undefined);
     mockGit.commit.mockResolvedValue(undefined);
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
-    // rev-list fails because origin/main doesn't exist yet
-    mockGit.raw.mockRejectedValue(new Error('unknown revision origin/main'));
+    // rev-list origin/main..HEAD fails, then rev-list HEAD --count returns commit count
+    mockGit.raw
+      .mockRejectedValueOnce(new Error('unknown revision origin/main'))
+      .mockResolvedValueOnce('1\n');
     mockGit.push.mockResolvedValue(undefined);
 
     const result = await pushSkills(tempDir, 'initial');
@@ -251,12 +254,34 @@ describe('pushSkills', () => {
     expect(result).toEqual({ committed: true, pushed: true });
   });
 
+  it('pushes existing commits when tree is clean but remote branch never existed', async () => {
+    // User scenario: first push committed but failed to push (no gh cli/remote repo),
+    // then user installs gh cli + creates remote, runs push again — tree is clean but
+    // local has commits that were never pushed
+    mockGit.add.mockResolvedValue(undefined);
+    mockGit.status.mockResolvedValue({ isClean: () => true });
+    mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    // rev-list origin/main..HEAD fails (no remote branch), rev-list HEAD --count shows commits exist
+    mockGit.raw
+      .mockRejectedValueOnce(new Error('unknown revision origin/main'))
+      .mockResolvedValueOnce('3\n');
+    mockGit.push.mockResolvedValue(undefined);
+
+    const result = await pushSkills(tempDir);
+
+    expect(mockGit.commit).not.toHaveBeenCalled();
+    expect(mockGit.push).toHaveBeenCalledWith('origin', 'main', { '--set-upstream': null });
+    expect(result.committed).toBe(false);
+    expect(result.pushed).toBe(true);
+  });
+
   it('uses token with temporary remote URL and restores clean URL', async () => {
     mockGit.status.mockResolvedValue({ isClean: () => false });
     mockGit.add.mockResolvedValue(undefined);
     mockGit.commit.mockResolvedValue(undefined);
     mockGit.push.mockResolvedValue(undefined);
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.raw.mockResolvedValue('1\n');
     mockGit.getRemotes.mockResolvedValue([
       { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
     ]);
@@ -274,6 +299,7 @@ describe('pushSkills', () => {
     mockGit.add.mockResolvedValue(undefined);
     mockGit.commit.mockResolvedValue(undefined);
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.raw.mockResolvedValue('1\n');
     mockGit.getRemotes.mockResolvedValue([
       { name: 'origin', refs: { fetch: '', push: '' } },
     ]);
@@ -289,6 +315,7 @@ describe('pushSkills', () => {
     mockGit.commit.mockResolvedValue(undefined);
     mockGit.push.mockResolvedValue(undefined);
     mockGit.branchLocal.mockResolvedValue({ current: 'master' });
+    mockGit.raw.mockResolvedValue('1\n');
 
     await pushSkills(tempDir, 'test', null);
 
@@ -302,6 +329,7 @@ describe('pushSkills', () => {
     mockGit.commit.mockResolvedValue(undefined);
     mockGit.push.mockResolvedValue(undefined);
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.raw.mockResolvedValue('1\n');
 
     await pushSkills(tempDir);
 
@@ -314,6 +342,7 @@ describe('pushSkills', () => {
     mockGit.add.mockResolvedValue(undefined);
     mockGit.commit.mockResolvedValue(undefined);
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.raw.mockResolvedValue('1\n');
     mockGit.push.mockRejectedValue(new Error('error: failed to push some refs... non-fast-forward'));
 
     await expect(pushSkills(tempDir, 'test')).rejects.toThrow('Push rejected');
@@ -325,6 +354,7 @@ describe('pushSkills', () => {
     mockGit.add.mockResolvedValue(undefined);
     mockGit.commit.mockResolvedValue(undefined);
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.raw.mockResolvedValue('1\n');
     mockGit.getRemotes.mockResolvedValue([
       { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
     ]);
@@ -339,6 +369,7 @@ describe('pushSkills', () => {
     mockGit.add.mockResolvedValue(undefined);
     mockGit.commit.mockResolvedValue(undefined);
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.raw.mockResolvedValue('1\n');
     mockGit.getRemotes.mockResolvedValue([
       { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
     ]);
@@ -357,6 +388,7 @@ describe('pushSkills', () => {
     mockGit.add.mockResolvedValue(undefined);
     mockGit.commit.mockResolvedValue(undefined);
     mockGit.branchLocal.mockResolvedValue({ current: 'main' });
+    mockGit.raw.mockResolvedValue('1\n');
     mockGit.push.mockRejectedValue(new Error('network timeout'));
 
     await expect(pushSkills(tempDir, 'test')).rejects.toThrow('network timeout');

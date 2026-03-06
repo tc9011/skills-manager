@@ -147,8 +147,14 @@ export async function pushSkills(
     const count = await git.raw(['rev-list', `origin/${branch}..HEAD`, '--count']);
     aheadCount = parseInt(count.trim(), 10) || 0;
   } catch {
-    // Remote branch may not exist yet (first push) — treat as ahead if we committed
-    aheadCount = committed ? 1 : 0;
+    // Remote branch may not exist yet (first push) — check if local has ANY commits
+    try {
+      const localCount = await git.raw(['rev-list', 'HEAD', '--count']);
+      aheadCount = parseInt(localCount.trim(), 10) || 0;
+    } catch {
+      // No commits at all (empty repo)
+      aheadCount = 0;
+    }
   }
 
   if (aheadCount === 0) {
