@@ -1,3 +1,10 @@
+## [0.10.3](https://github.com/tc9011/skills-manager/compare/v0.10.2...v0.10.3) (2026-03-06)
+
+
+### Bug Fixes
+
+* push local commits when remote branch has never been pushed to ([9f71dab](https://github.com/tc9011/skills-manager/commit/9f71dab37bfd71de692f6320f2e0d3b38ff7b105))
+
 ## [0.10.2](https://github.com/tc9011/skills-manager/compare/v0.10.1...v0.10.2) (2026-03-05)
 
 
