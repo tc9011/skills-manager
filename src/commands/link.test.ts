@@ -64,6 +64,54 @@ describe('linkCommand', () => {
     expect(typeof mod.linkCommand).toBe('function');
   });
 
+  it('shows all registered agents even when lock file is empty', async () => {
+    vi.mocked(getLastSelectedAgents).mockResolvedValue([]);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor']);
+    vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+    vi.mocked(createSkillSymlinks).mockResolvedValue([
+      { skill: 'my-skill', status: 'created' },
+    ]);
+
+    const { linkCommand } = await import('./link.js');
+    await linkCommand({});
+
+    const call = vi.mocked(prompts.multiselect).mock.calls[0][0] as { options: Array<{ value: string }> };
+    expect(call.options.length).toBeGreaterThan(10);
+    expect(call.options.some(o => o.value === 'openclaw')).toBe(true);
+  });
+
+  it('pre-selects lock file agents when no lastLinkedAgents saved', async () => {
+    vi.mocked(readConfig).mockReturnValue({});
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as AgentId[]);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['cursor', 'opencode']);
+    vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+    vi.mocked(createSkillSymlinks).mockResolvedValue([
+      { skill: 'my-skill', status: 'created' },
+    ]);
+
+    const { linkCommand } = await import('./link.js');
+    await linkCommand({});
+
+    const call = vi.mocked(prompts.multiselect).mock.calls[0][0] as { initialValues?: string[] };
+    expect(call.initialValues).toEqual(expect.arrayContaining(['cursor', 'opencode']));
+  });
+
+  it('pre-selects lastLinkedAgents over lock file agents', async () => {
+    vi.mocked(readConfig).mockReturnValue({ lastLinkedAgents: ['claude-code'] });
+    vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor', 'opencode'] as AgentId[]);
+    vi.mocked(prompts.multiselect).mockResolvedValue(['claude-code']);
+    vi.mocked(listCanonicalSkills).mockResolvedValue(['my-skill']);
+    vi.mocked(createSkillSymlinks).mockResolvedValue([
+      { skill: 'my-skill', status: 'created' },
+    ]);
+
+    const { linkCommand } = await import('./link.js');
+    await linkCommand({});
+
+    const call = vi.mocked(prompts.multiselect).mock.calls[0][0] as { initialValues?: string[] };
+    expect(call.initialValues).toEqual(['claude-code']);
+  });
+
   it('links skills to agents on happy path', async () => {
     vi.mocked(getLastSelectedAgents).mockResolvedValue(['cursor'] as AgentId[]);
     vi.mocked(prompts.multiselect).mockResolvedValue(['cursor']);
