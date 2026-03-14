@@ -1,3 +1,10 @@
+# [0.11.0](https://github.com/tc9011/skills-manager/compare/v0.10.3...v0.11.0) (2026-03-14)
+
+
+### Features
+
+* show all registered agents in link prompt, pre-select lock file agents ([7c31908](https://github.com/tc9011/skills-manager/commit/7c31908cb910866e75c00aebc4e60f4fc15d7bb7))
+
 ## [0.10.3](https://github.com/tc9011/skills-manager/compare/v0.10.2...v0.10.3) (2026-03-06)
 
 
