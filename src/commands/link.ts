@@ -10,7 +10,8 @@ import * as p from '@clack/prompts';
 export async function linkCommand(options: { agents?: string[]; project?: boolean; skills?: string[]; mode?: string }): Promise<void> {
   p.intro('skills-manager link');
 
-  // 1. Read lock file for lastSelectedAgents
+  // 1. Resolve agents: --agents flag takes precedence, otherwise use full registry
+  //    Lock file agents are used for pre-selection only.
   let agents: AgentId[];
   if (options.agents?.length) {
     const validIds = new Set(Object.keys(agentRegistry));
@@ -21,12 +22,11 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
     }
     agents = options.agents as AgentId[];
   } else {
-    agents = await getLastSelectedAgents(SKILL_LOCK_PATH);
-    if (agents.length === 0) {
-      p.cancel('No lastSelectedAgents found in .skill-lock.json. Use --agents to specify.');
-      throw new CliError('No lastSelectedAgents found in .skill-lock.json.');
-    }
+    agents = Object.keys(agentRegistry) as AgentId[];
   }
+
+  // Read lock file agents for pre-selection
+  const lockFileAgents = await getLastSelectedAgents(SKILL_LOCK_PATH);
 
   // 2. Get skill list
   const skills = await listCanonicalSkills(CANONICAL_SKILLS_DIR);
@@ -116,7 +116,7 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
       const selected = await p.multiselect<string>({
         message: 'Select agents to link skills to:',
         options: agentChoices,
-        initialValues: computeInitialValues(agents, agentChoices),
+        initialValues: computeInitialValues(agentChoices, lockFileAgents),
         required: false,
       });
 
@@ -195,7 +195,7 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
       const selected = await p.multiselect<string>({
         message: 'Select agents to link skills to:',
         options: agentChoices,
-        initialValues: computeInitialValues(agents, agentChoices),
+        initialValues: computeInitialValues(agentChoices, lockFileAgents),
         required: false,
       });
 
@@ -252,20 +252,19 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
   p.outro('Done!');
 }
 
-/**
- * Determine which agents should be pre-selected in the multiselect.
- * Priority: saved lastLinkedAgents (if any match current list) > existsSync fallback.
- */
-function computeInitialValues(agents: AgentId[], choices: { value: string }[]): string[] {
+function computeInitialValues(choices: { value: string }[], lockFileAgents: AgentId[]): string[] {
   const config = readConfig();
   const saved = config.lastLinkedAgents;
   if (saved && saved.length > 0) {
-    const agentSet = new Set(agents as string[]);
-    const matching = saved.filter(id => agentSet.has(id));
+    const choiceSet = new Set(choices.map(c => c.value));
+    const matching = saved.filter(id => choiceSet.has(id));
     if (matching.length > 0) {
       return matching;
     }
   }
-  // Fallback: pre-select agents whose directories exist locally
+  if (lockFileAgents.length > 0) {
+    const choiceSet = new Set(choices.map(c => c.value));
+    return lockFileAgents.filter(id => choiceSet.has(id as string)) as string[];
+  }
   return choices.filter(c => existsSync(getAgentGlobalPath(c.value as AgentId))).map(c => c.value);
 }
