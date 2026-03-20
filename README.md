@@ -11,6 +11,8 @@ A CLI companion to [vercel-labs/skills](https://github.com/vercel-labs/skills) �
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
 
+English | [中文](./README.zh-CN.md)
+
 </div>
 
 ---
@@ -103,6 +105,7 @@ sm link --agents cursor opencode claude-code
 | `-p, --project` | Link skills to project directory (CWD) instead of global paths |
 | `-s, --skills <skills...>` | Skill names to link (project mode only, skips skill prompt) |
 | `--mode <mode>` | `copy` or `symlink` (project mode only, default: `copy`, skips prompt) |
+
 An interactive multiselect prompt lets you pick which agents to link. Only agents with local directories are pre-selected. Your selection is remembered for next time.
 
 When `--agents` is provided, the agent selection prompt is skipped entirely — useful for scripting and AI agent automation:
@@ -251,6 +254,7 @@ sm link --project reads .skill-lock.json → select skills → choose copy/symli
 ./my-project/.agents/skills/my-skill    ← copied from ~/.agents/skills/
 ./my-project/.claude/skills/my-skill    ← copied from ~/.agents/skills/
 ```
+
 ## Skill
 
 This project includes a skill at `skills/skills-manager/` that teaches AI agents how to operate the CLI — push, pull, and link commands.
@@ -313,10 +317,12 @@ src/
 ├── lockfile.ts           # Read-only .skill-lock.json parser
 ├── linker.ts             # Symlink creation + project-level copy/link
 ├── git-ops.ts            # Git push/pull via simple-git
-└── commands/
-    ├── push.ts           # Push handler
-    ├── pull.ts           # Pull handler (auto-runs link)
-    └── link.ts           # Link handler (interactive multiselect)
+├── commands/
+│   ├── push.ts           # Push handler
+│   ├── pull.ts           # Pull handler (auto-runs link)
+│   └── link.ts           # Link handler (interactive multiselect)
+└── prompts/
+    └── search-multiselect.ts  # Searchable multi-select prompt component
 ```
 
 ### Releasing

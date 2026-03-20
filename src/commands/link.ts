@@ -6,6 +6,7 @@ import { readConfig, writeConfig } from '../config.js';
 import { getLastSelectedAgents } from '../lockfile.js';
 import { createSkillSymlinks, listCanonicalSkills, copySkills, createProjectSymlinks } from '../linker.js';
 import * as p from '@clack/prompts';
+import { searchMultiselect, cancelSymbol } from '../prompts/search-multiselect.js';
 
 export async function linkCommand(options: { agents?: string[]; project?: boolean; skills?: string[]; mode?: string }): Promise<void> {
   p.intro('skills-manager link');
@@ -102,25 +103,38 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
     if (options.agents?.length) {
       selectedAgents = agents;
     } else {
-      const agentChoices = agents.map(id => {
+      const universalIds = agents.filter(id => agentRegistry[id].universal);
+      const otherIds = agents.filter(id => !agentRegistry[id].universal);
+
+      const lockedSection = {
+        title: 'Universal (.agents/skills)',
+        items: universalIds.map(id => ({ value: id, label: agentRegistry[id].displayName })),
+      };
+
+      const otherChoices = otherIds.map(id => {
         const projectPath = agentRegistry[id].projectPath;
         const targetDir = join(process.cwd(), projectPath);
         const dirExists = existsSync(targetDir);
         return {
-          value: id as string,
+          value: id,
           label: `${agentRegistry[id].displayName} (${id})`,
           hint: dirExists ? projectPath : `${projectPath} — directory will be created`,
         };
       });
 
-      const selected = await p.multiselect<string>({
+      const nonUniversalChoices = otherChoices.map(c => ({ ...c, value: c.value as string }));
+      const initialNonUniversal = computeInitialValues(nonUniversalChoices, lockFileAgents).filter(
+        id => !agentRegistry[id as AgentId]?.universal
+      );
+
+      const selected = await searchMultiselect<string>({
         message: 'Select agents to link skills to:',
-        options: agentChoices,
-        initialValues: computeInitialValues(agentChoices, lockFileAgents),
-        required: false,
+        items: nonUniversalChoices,
+        initialSelected: initialNonUniversal,
+        lockedSection,
       });
 
-      if (p.isCancel(selected) || !selected.length) {
+      if (selected === cancelSymbol) {
         p.cancel('No agents selected.');
         return;
       }
@@ -129,6 +143,11 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
       selectedAgents = (selected as string[]).filter(
         (id): id is AgentId => validSelected.has(id)
       );
+
+      if (selectedAgents.length === 0) {
+        p.cancel('No agents selected.');
+        return;
+      }
     }
 
     // 3d. Execute: group by projectPath, copy/link
@@ -182,24 +201,37 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
     if (options.agents?.length) {
       selectedAgents = agents;
     } else {
-      const agentChoices = agents.map(id => {
+      const universalIds = agents.filter(id => agentRegistry[id].universal);
+      const otherIds = agents.filter(id => !agentRegistry[id].universal);
+
+      const lockedSection = {
+        title: 'Universal (.agents/skills)',
+        items: universalIds.map(id => ({ value: id, label: agentRegistry[id].displayName })),
+      };
+
+      const otherChoices = otherIds.map(id => {
         const globalPath = getAgentGlobalPath(id);
         const dirExists = existsSync(globalPath);
         return {
-          value: id as string,
+          value: id,
           label: `${agentRegistry[id].displayName} (${id})`,
           hint: dirExists ? globalPath : `${globalPath} — directory will be created`,
         };
       });
 
-      const selected = await p.multiselect<string>({
+      const nonUniversalChoices = otherChoices.map(c => ({ ...c, value: c.value as string }));
+      const initialNonUniversal = computeInitialValues(nonUniversalChoices, lockFileAgents).filter(
+        id => !agentRegistry[id as AgentId]?.universal
+      );
+
+      const selected = await searchMultiselect<string>({
         message: 'Select agents to link skills to:',
-        options: agentChoices,
-        initialValues: computeInitialValues(agentChoices, lockFileAgents),
-        required: false,
+        items: nonUniversalChoices,
+        initialSelected: initialNonUniversal,
+        lockedSection,
       });
 
-      if (p.isCancel(selected) || !selected.length) {
+      if (selected === cancelSymbol) {
         p.cancel('No agents selected.');
         return;
       }
@@ -208,6 +240,11 @@ export async function linkCommand(options: { agents?: string[]; project?: boolea
       selectedAgents = (selected as string[]).filter(
         (id): id is AgentId => validSelected.has(id)
       );
+
+      if (selectedAgents.length === 0) {
+        p.cancel('No agents selected.');
+        return;
+      }
     }
 
     // 3b. Link all skills for each agent

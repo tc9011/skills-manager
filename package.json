@@ -72,6 +72,7 @@
   "dependencies": {
     "@clack/prompts": "^1.1.0",
     "commander": "^14.0.3",
+    "picocolors": "^1.1.1",
     "simple-git": "^3.27.0"
   }
 }
