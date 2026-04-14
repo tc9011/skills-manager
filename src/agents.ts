@@ -3,14 +3,14 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 export type AgentId =
-  | 'amp' | 'antigravity' | 'augment' | 'claude-code' | 'openclaw'
+  | 'amp' | 'antigravity' | 'augment' | 'bob' | 'claude-code' | 'openclaw'
   | 'cline' | 'codebuddy' | 'codex' | 'command-code' | 'continue'
-  | 'cortex' | 'crush' | 'cursor' | 'droid' | 'gemini-cli'
-  | 'github-copilot' | 'goose' | 'junie' | 'iflow-cli' | 'kilo'
-  | 'kimi-cli' | 'kiro-cli' | 'kode' | 'mcpjam' | 'mistral-vibe'
-  | 'mux' | 'opencode' | 'openhands' | 'pi' | 'qoder'
-  | 'qwen-code' | 'replit' | 'roo' | 'trae' | 'trae-cn'
-  | 'windsurf' | 'zencoder' | 'neovate' | 'pochi' | 'adal' | 'universal';
+  | 'cortex' | 'crush' | 'cursor' | 'deepagents' | 'droid' | 'firebender'
+  | 'gemini-cli' | 'github-copilot' | 'goose' | 'hermes' | 'junie'
+  | 'iflow-cli' | 'kilo' | 'kimi-cli' | 'kiro-cli' | 'kode'
+  | 'mcpjam' | 'mistral-vibe' | 'mux' | 'opencode' | 'openhands'
+  | 'pi' | 'qoder' | 'qwen-code' | 'replit' | 'roo' | 'trae' | 'trae-cn'
+  | 'warp' | 'windsurf' | 'zencoder' | 'neovate' | 'pochi' | 'adal' | 'universal';
 
 export interface AgentPaths {
   displayName: string;
@@ -22,19 +22,23 @@ export interface AgentPaths {
 export const agentRegistry: Record<AgentId, AgentPaths> = {
   // UNIVERSAL GROUP (.agents/skills)
   amp:              { displayName: 'Amp',              projectPath: '.agents/skills', globalPath: '$XDG_CONFIG_HOME/agents/skills',   universal: true },
+  antigravity:      { displayName: 'Antigravity',      projectPath: '.agents/skills', globalPath: '~/.gemini/antigravity/skills',    universal: true },
   cline:            { displayName: 'Cline',            projectPath: '.agents/skills', globalPath: '~/.agents/skills',          universal: true },
   codex:            { displayName: 'Codex',            projectPath: '.agents/skills', globalPath: '$CODEX_HOME/skills',        universal: true },
   cursor:           { displayName: 'Cursor',           projectPath: '.agents/skills', globalPath: '~/.cursor/skills',          universal: true },
+  deepagents:       { displayName: 'Deep Agents',      projectPath: '.agents/skills', globalPath: '~/.deepagents/agent/skills',      universal: true },
+  firebender:       { displayName: 'Firebender',       projectPath: '.agents/skills', globalPath: '~/.firebender/skills',            universal: true },
   'gemini-cli':     { displayName: 'Gemini CLI',       projectPath: '.agents/skills', globalPath: '~/.gemini/skills',          universal: true },
   'github-copilot': { displayName: 'GitHub Copilot',   projectPath: '.agents/skills', globalPath: '~/.copilot/skills',         universal: true },
   'kimi-cli':       { displayName: 'Kimi Code CLI',    projectPath: '.agents/skills', globalPath: '$XDG_CONFIG_HOME/agents/skills',   universal: true },
   opencode:         { displayName: 'OpenCode',         projectPath: '.agents/skills', globalPath: '$XDG_CONFIG_HOME/opencode/skills', universal: true },
   replit:           { displayName: 'Replit',            projectPath: '.agents/skills', globalPath: '$XDG_CONFIG_HOME/agents/skills',   universal: true },
   universal:        { displayName: 'Universal',        projectPath: '.agents/skills', globalPath: '$XDG_CONFIG_HOME/agents/skills',   universal: true },
+  warp:             { displayName: 'Warp',             projectPath: '.agents/skills', globalPath: '~/.agents/skills',                universal: true },
 
   // NON-UNIVERSAL (agent-specific paths)
-  antigravity:      { displayName: 'Antigravity',      projectPath: '.agent/skills',        globalPath: '~/.gemini/antigravity/skills',    universal: false },
   augment:          { displayName: 'Augment',          projectPath: '.augment/skills',      globalPath: '~/.augment/skills',               universal: false },
+  bob:              { displayName: 'IBM Bob',          projectPath: '.bob/skills',          globalPath: '~/.bob/skills',                   universal: false },
   'claude-code':    { displayName: 'Claude Code',      projectPath: '.claude/skills',       globalPath: '$CLAUDE_CONFIG_DIR/skills',       universal: false },
   openclaw:         { displayName: 'OpenClaw',         projectPath: 'skills',               globalPath: '~/.openclaw/skills',              universal: false },
   codebuddy:        { displayName: 'CodeBuddy',        projectPath: '.codebuddy/skills',    globalPath: '~/.codebuddy/skills',             universal: false },
@@ -44,6 +48,7 @@ export const agentRegistry: Record<AgentId, AgentPaths> = {
   crush:            { displayName: 'Crush',            projectPath: '.crush/skills',        globalPath: '$XDG_CONFIG_HOME/crush/skills',          universal: false },
   droid:            { displayName: 'Droid',            projectPath: '.factory/skills',      globalPath: '~/.factory/skills',               universal: false },
   goose:            { displayName: 'Goose',            projectPath: '.goose/skills',        globalPath: '$XDG_CONFIG_HOME/goose/skills',          universal: false },
+  hermes:           { displayName: 'Hermes Agent',     projectPath: '.hermes/skills',       globalPath: '~/.hermes/skills',                universal: false },
   junie:            { displayName: 'Junie',            projectPath: '.junie/skills',        globalPath: '~/.junie/skills',                 universal: false },
   'iflow-cli':      { displayName: 'iFlow CLI',        projectPath: '.iflow/skills',        globalPath: '~/.iflow/skills',                 universal: false },
   kilo:             { displayName: 'Kilo Code',        projectPath: '.kilocode/skills',     globalPath: '~/.kilocode/skills',              universal: false },

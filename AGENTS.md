@@ -12,7 +12,7 @@ Coding guidelines for AI agents working on this project.
 src/
 ├── index.ts              # CLI entry point (Commander.js)
 ├── errors.ts             # CliError class for structured error handling
-├── agents.ts             # Agent registry (41 agents) + path resolution
+├── agents.ts             # Agent registry (46 agents) + path resolution
 ├── auth.ts               # GitHub token resolution (gh CLI → env vars → interactive)
 ├── config.ts             # XDG-compliant config persistence (~/.config/skills-manager/)
 ├── lockfile.ts           # .skill-lock.json reader (READ ONLY)
@@ -57,7 +57,7 @@ Global mode (`link`) uses relative symlinks via `computeRelativeSymlinkTarget()`
 
 ### Agent registry must match vercel-labs/skills
 
-The 41-agent registry in `agents.ts` must stay synchronized with the upstream agent list. When adding agents, follow the existing pattern of universal vs non-universal classification.
+The 46-agent registry in `agents.ts` must stay synchronized with the upstream agent list. When adding agents, follow the existing pattern of universal vs non-universal classification.
 
 ## Tech Stack
 

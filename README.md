@@ -163,7 +163,7 @@ If none are found, git will attempt the operation unauthenticated — which work
 
 ## Supported Agents
 
-41 agents — matching the full [vercel-labs/skills](https://github.com/vercel-labs/skills) registry.
+46 agents — matching the full [vercel-labs/skills](https://github.com/vercel-labs/skills) registry.
 
 <details>
 <summary><strong>Universal Agents</strong> (share <code>~/.agents/skills</code>)</summary>
@@ -171,15 +171,19 @@ If none are found, git will attempt the operation unauthenticated — which work
 | Agent | ID | Global Path |
 |-------|----|-------------|
 | Amp | `amp` | `$XDG_CONFIG_HOME/agents/skills` |
+| Antigravity | `antigravity` | `~/.gemini/antigravity/skills` |
 | Cline | `cline` | `~/.agents/skills` |
 | Codex | `codex` | `$CODEX_HOME/skills` |
 | Cursor | `cursor` | `~/.cursor/skills` |
+| Deep Agents | `deepagents` | `~/.deepagents/agent/skills` |
+| Firebender | `firebender` | `~/.firebender/skills` |
 | Gemini CLI | `gemini-cli` | `~/.gemini/skills` |
 | GitHub Copilot | `github-copilot` | `~/.copilot/skills` |
 | Kimi Code CLI | `kimi-cli` | `$XDG_CONFIG_HOME/agents/skills` |
 | OpenCode | `opencode` | `$XDG_CONFIG_HOME/opencode/skills` |
 | Replit | `replit` | `$XDG_CONFIG_HOME/agents/skills` |
 | Universal | `universal` | `$XDG_CONFIG_HOME/agents/skills` |
+| Warp | `warp` | `~/.agents/skills` |
 
 </details>
 
@@ -189,7 +193,6 @@ If none are found, git will attempt the operation unauthenticated — which work
 | Agent | ID | Global Path |
 |-------|----|-------------|
 | AdaL | `adal` | `~/.adal/skills` |
-| Antigravity | `antigravity` | `~/.gemini/antigravity/skills` |
 | Augment | `augment` | `~/.augment/skills` |
 | Claude Code | `claude-code` | `$CLAUDE_CONFIG_DIR/skills` |
 | CodeBuddy | `codebuddy` | `~/.codebuddy/skills` |
@@ -199,6 +202,8 @@ If none are found, git will attempt the operation unauthenticated — which work
 | Crush | `crush` | `$XDG_CONFIG_HOME/crush/skills` |
 | Droid | `droid` | `~/.factory/skills` |
 | Goose | `goose` | `$XDG_CONFIG_HOME/goose/skills` |
+| Hermes Agent | `hermes` | `~/.hermes/skills` |
+| IBM Bob | `bob` | `~/.bob/skills` |
 | iFlow CLI | `iflow-cli` | `~/.iflow/skills` |
 | Junie | `junie` | `~/.junie/skills` |
 | Kilo Code | `kilo` | `~/.kilocode/skills` |
@@ -311,7 +316,7 @@ npm run lint              # run ESLint
 ```
 src/
 ├── index.ts              # CLI entry point (Commander.js)
-├── agents.ts             # 41-agent registry + path resolution
+├── agents.ts             # 46-agent registry + path resolution
 ├── auth.ts               # GitHub token resolution
 ├── config.ts             # XDG-compliant config persistence
 ├── lockfile.ts           # Read-only .skill-lock.json parser

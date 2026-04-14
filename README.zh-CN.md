@@ -165,7 +165,7 @@ sm link --project --agents cursor claude-code --skills my-skill --mode copy
 
 ## 支持的智能体
 
-41 个智能体 —— 与 [vercel-labs/skills](https://github.com/vercel-labs/skills) 完整注册表保持同步。
+46 个智能体 —— 与 [vercel-labs/skills](https://github.com/vercel-labs/skills) 完整注册表保持同步。
 
 <details>
 <summary><strong>通用智能体</strong>（共享 <code>~/.agents/skills</code>）</summary>
@@ -173,15 +173,19 @@ sm link --project --agents cursor claude-code --skills my-skill --mode copy
 | 智能体 | ID | 全局路径 |
 |--------|----|---------:|
 | Amp | `amp` | `$XDG_CONFIG_HOME/agents/skills` |
+| Antigravity | `antigravity` | `~/.gemini/antigravity/skills` |
 | Cline | `cline` | `~/.agents/skills` |
 | Codex | `codex` | `$CODEX_HOME/skills` |
 | Cursor | `cursor` | `~/.cursor/skills` |
+| Deep Agents | `deepagents` | `~/.deepagents/agent/skills` |
+| Firebender | `firebender` | `~/.firebender/skills` |
 | Gemini CLI | `gemini-cli` | `~/.gemini/skills` |
 | GitHub Copilot | `github-copilot` | `~/.copilot/skills` |
 | Kimi Code CLI | `kimi-cli` | `$XDG_CONFIG_HOME/agents/skills` |
 | OpenCode | `opencode` | `$XDG_CONFIG_HOME/opencode/skills` |
 | Replit | `replit` | `$XDG_CONFIG_HOME/agents/skills` |
 | Universal | `universal` | `$XDG_CONFIG_HOME/agents/skills` |
+| Warp | `warp` | `~/.agents/skills` |
 
 </details>
 
@@ -191,7 +195,6 @@ sm link --project --agents cursor claude-code --skills my-skill --mode copy
 | 智能体 | ID | 全局路径 |
 |--------|----|---------:|
 | AdaL | `adal` | `~/.adal/skills` |
-| Antigravity | `antigravity` | `~/.gemini/antigravity/skills` |
 | Augment | `augment` | `~/.augment/skills` |
 | Claude Code | `claude-code` | `$CLAUDE_CONFIG_DIR/skills` |
 | CodeBuddy | `codebuddy` | `~/.codebuddy/skills` |
@@ -201,6 +204,8 @@ sm link --project --agents cursor claude-code --skills my-skill --mode copy
 | Crush | `crush` | `$XDG_CONFIG_HOME/crush/skills` |
 | Droid | `droid` | `~/.factory/skills` |
 | Goose | `goose` | `$XDG_CONFIG_HOME/goose/skills` |
+| Hermes Agent | `hermes` | `~/.hermes/skills` |
+| IBM Bob | `bob` | `~/.bob/skills` |
 | iFlow CLI | `iflow-cli` | `~/.iflow/skills` |
 | Junie | `junie` | `~/.junie/skills` |
 | Kilo Code | `kilo` | `~/.kilocode/skills` |
@@ -313,7 +318,7 @@ npm run lint              # 运行 ESLint
 ```
 src/
 ├── index.ts              # CLI 入口（Commander.js）
-├── agents.ts             # 41 个智能体注册表 + 路径解析
+├── agents.ts             # 46 个智能体注册表 + 路径解析
 ├── auth.ts               # GitHub token 解析
 ├── config.ts             # XDG 规范的配置持久化
 ├── lockfile.ts           # 只读 .skill-lock.json 解析器

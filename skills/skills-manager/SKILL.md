@@ -240,7 +240,7 @@ This means `~/.agents/skills/` is empty or doesn't exist. Either:
 
 **Error:** `Unknown agent ID(s): foo. Run with no --agents to see available IDs.`
 
-The `--agents` flag only accepts valid agent IDs from the 41-agent registry. Run `sm link` without `--agents` to see the interactive list.
+The `--agents` flag only accepts valid agent IDs from the 46-agent registry. Run `sm link` without `--agents` to see the interactive list.
 
 ### Auth failure during push/pull
 

@@ -4,8 +4,8 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 describe('agentRegistry', () => {
-  it('contains all 41 agents', () => {
-    expect(Object.keys(agentRegistry)).toHaveLength(41);
+  it('contains all 46 agents', () => {
+    expect(Object.keys(agentRegistry)).toHaveLength(46);
   });
 
   it('includes all user lastSelectedAgents', () => {
@@ -37,18 +37,18 @@ describe('agentRegistry', () => {
 
   it('non-universal agents have agent-specific project paths', () => {
     expect(agentRegistry['claude-code'].projectPath).toBe('.claude/skills');
-    expect(agentRegistry.antigravity.projectPath).toBe('.agent/skills');
+    expect(agentRegistry.bob.projectPath).toBe('.bob/skills');
     expect(agentRegistry.windsurf.projectPath).toBe('.windsurf/skills');
   });
 
   it('has correct count of universal agents', () => {
     const universals = Object.values(agentRegistry).filter(v => v.universal);
-    expect(universals).toHaveLength(10);
+    expect(universals).toHaveLength(14);
   });
 
   it('has correct count of non-universal agents', () => {
     const nonUniversals = Object.values(agentRegistry).filter(v => !v.universal);
-    expect(nonUniversals).toHaveLength(31);
+    expect(nonUniversals).toHaveLength(32);
   });
 });
 
@@ -171,7 +171,7 @@ describe('getAgentProjectPath', () => {
 
   it('resolves antigravity project path', () => {
     const path = getAgentProjectPath('antigravity', '/tmp/foo');
-    expect(path).toBe('/tmp/foo/.agent/skills');
+    expect(path).toBe('/tmp/foo/.agents/skills');
   });
 
   it('resolves opencode (universal) project path', () => {
